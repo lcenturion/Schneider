@@ -1,0 +1,576 @@
+<html>
+	<head>
+	
+		<title>Concepto</title>
+        <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+        <script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
+		<style>
+            button {
+             border: none;
+             background: #3a7999;
+             color: #f2f2f2;
+             padding: 10px;
+             font-size: 18px;
+             border-radius: 5px;
+             position: relative;
+             box-sizing: border-box;
+             transition: all 500ms ease;
+            }
+        
+            button:before {
+             content:'';
+             position: absolute;
+             top: 0px;
+             left: 0px;
+             width: 100%;
+             height: 0px;
+             background: rgba(255,255,255,0.3);
+             border-radius: 5px;
+             transition: all 2s ease;
+            }
+            button:hover:before {
+             height: 42px;
+            }
+        
+			body{
+				font-family:'arial';
+				font-size:14pt;
+			}
+			.g{
+				opacity:0.1;
+			}
+			.desc{
+				margin-left:400px;margin-top:90px;
+			}
+			a:link {
+				color: #C00000;
+				text-decoration:none;
+			}
+			a:visited {
+				text-decoration: none;
+				color: #C00000
+			}
+			a:hover {
+				text-decoration: underline;
+				color: #C00000
+			}			
+			.cuadro-consumo
+			{
+				width:500;
+				height:250;
+				border-width:1px;
+				border-style:solid;
+				border-color:#cccccc;
+			}
+            .cuadro-desc
+            {
+                margin-top:10px;
+                margin-bottom:10px;
+                height:50px;
+                width:500px;
+                font-size:9pt;
+            }
+            .energy
+            {
+                font-size:22pt;
+            }
+		</style>
+
+<script>
+//====================================================================================
+google.charts.load('current', {'packages':['corechart','line']});
+google.charts.setOnLoadCallback(init);
+
+var wsUri = "ws://200.40.153.99:8002";
+//var wsUri = "ws://127.0.0.1:8002";
+
+var chartActivePower;
+var chartReactivePower;
+var chartApparentPower;
+var chartPowerFactor;
+var chartFrequency;
+var chartTHD;
+var chartTempMeter;
+var chartTempPhoton;
+
+var irigoyen = "2e0028000a47353138383138";
+var tacuari = "310036001047353138383138";
+
+var activePower_array = [['Hora', 'Irigoyen', 'Tacuari']];
+var activePower_value = {};
+activePower_value[irigoyen] = 0;
+activePower_value[tacuari] = 0;
+
+var reactivePower_array = [['Hora', 'Irigoyen', 'Tacuari']];
+var reactivePower_value = {};
+reactivePower_value[irigoyen] = 0;
+reactivePower_value[tacuari] = 0;
+
+var apparentPower_array = [['Hora', 'Irigoyen', 'Tacuari']];
+var apparentPower_value = {};
+apparentPower_value[irigoyen] = 0;
+apparentPower_value[tacuari] = 0;
+
+var powerFactor_array = [['Hora', 'Irigoyen', 'Tacuari']];
+var powerFactor_value = {};
+powerFactor_value[irigoyen] = 0;
+powerFactor_value[tacuari] = 0;
+
+var frequency_array = [['Hora', 'Irigoyen', 'Tacuari']];
+var frequency_value = {};
+frequency_value[irigoyen] = 0;
+frequency_value[tacuari] = 0;
+
+var thd_array = [['Hora', 'Irigoyen', 'Tacuari']];
+var thd_value = {};
+thd_value[irigoyen] = 0;
+thd_value[tacuari] = 0;
+
+var tempMeter_array = [['Hora', 'Irigoyen', 'Tacuari']];
+var tempMeter_value = {};
+tempMeter_value[irigoyen] = 0;
+tempMeter_value[tacuari] = 0;
+
+var tempPhoton_array = [['Hora', 'Irigoyen', 'Tacuari']];
+var tempPhoton_value = {};
+tempPhoton_value[irigoyen] = 0;
+tempPhoton_value[tacuari] = 0;
+
+var activeEnergy_value = {};
+activeEnergy_value[tacuari]=0;
+activeEnergy_value[irigoyen]=0;
+
+//chartArea:{left:10,top:10}
+
+var options = {
+	title: '',
+	fontSize:14,
+	dataOpacity:0.5,
+	curveType:'function',
+	backgroundColor:'#ffffff',
+	colors:['green','blue'],
+	crosshair: { trigger: 'both', color:'#cccccc' },
+	legend:{position: 'top', textStyle: {color: 'black', fontSize: 10}},
+	orientation:'horizontal',
+	tooltip:{textStyle: {color: '#000000'}, showColorCode: true},
+	lineWidth:2,
+	pointSize:8
+};
+
+var websocket;
+function initWebSocket()
+{
+    websocket = new WebSocket(wsUri);
+    websocket.onopen = function(evt) { onOpen(evt) };
+    websocket.onclose = function(evt) { onClose(evt) };
+    websocket.onmessage = function(evt) { onMessage(evt) };
+    websocket.onerror = function(evt) { onError(evt) };
+}
+function onOpen(evt)
+{
+    //alert("CONNECTED");
+}
+function onClose(evt)
+{
+    //alert("Disconnected");
+}
+function onError(evt)
+{
+    //alert('Websocket Error:' + evt.data);
+}
+
+// /*var activePower_value = 0;
+// var reactivePower_value = 0;
+// var apparentPower_value = 0;
+// var powerFactor_value = 0;
+// var frequency_value = 0;
+// var thd_value = 0;
+// var tempMeter_value = 0;
+// var tempPhoton_value = 0;
+// var activeEnergy_value = 0;*/
+var max_activePower = 0;
+var min_powerFactor = null;
+
+function onMessage(evt)
+{
+    //alert(evt.data);
+    var meter = JSON.parse(evt.data);
+
+    activePower_value[meter.coreid] = meter.activePower*1;
+    reactivePower_value[meter.coreid] = meter.reactivePower*1;
+    apparentPower_value[meter.coreid] = meter.apparentPower*1;
+    powerFactor_value[meter.coreid] = meter.powerFactor*1;
+    frequency_value[meter.coreid] = meter.frequency*1;
+    thd_value[meter.coreid] = meter.THD*1;
+    tempMeter_value[meter.coreid] = meter.tempMeter*1;
+    tempPhoton_value[meter.coreid] = meter.tempPhoton*1;
+    activeEnergy_value[meter.coreid] = meter.activeEnergy*1;
+
+    
+    
+//C = 471,24 + 170,82 + 1,19*max(actpwr[kW]) + 0,452*acten[kWh]
+//: Ctotal = C*(1,33383+1,5*(0,85-min(pwrfc)))    
+    var activePowerTotal = activePower_value[irigoyen] + activePower_value[tacuari];
+    var powerFactorTotal = powerFactor_value[irigoyen] + powerFactor_value[tacuari];
+    var activeEnergyTotal = powerFactor_value[irigoyen] + powerFactor_value[tacuari];
+
+    if (activePowerTotal > max_activePower)
+    	max_activePower = activePowerTotal;
+    
+    if (min_powerFactor == null)
+   		min_powerFactor = powerFactorTotal;	
+    else if (powerFactorTotal < min_powerFactor)
+		min_powerFactor = powerFactorTotal ;
+		
+    
+    var cost = 471.24 + 170.82 + (3.28 * (max_activePower)) + (0.731 * activeEnergyTotal / 1000);
+    console.log('cost:' + cost)
+    var cost = cost * (1.33383 + 1.5 *(0.85 - min_powerFactor))
+    console.log('cost + imp:' + cost)
+    cost = cost.toFixed(2);
+    document.getElementById('idCost').innerHTML = '$ ' + cost;
+    
+    show1();
+}
+
+function init()
+{
+
+    chartActivePower = new google.visualization.LineChart(document.getElementById('idActivePower'));
+    chartReactivePower = new google.visualization.LineChart(document.getElementById('idReactivePower'));
+
+    chartApparentPower = new google.visualization.LineChart(document.getElementById('idApparentPower'));
+    chartPowerFactor = new google.visualization.LineChart(document.getElementById('idPowerFactor'));
+
+	chartFrequency = new google.visualization.LineChart(document.getElementById('idFrequency'));
+    chartTHD = new google.visualization.LineChart(document.getElementById('idTHD'));
+
+    chartTempMeter = new google.visualization.LineChart(document.getElementById('idTempMeter'));
+    chartTempPhoton = new google.visualization.LineChart(document.getElementById('idTempPhoton'));
+
+
+	//chartApparentPower = new google.charts.Line(document.getElementById('idApparentPower'));
+
+    // initWebSocket();
+    show1();
+	
+    
+    //show2();
+
+}
+function show2()
+{
+
+	var data = new google.visualization.DataTable();
+	//alert('ok');
+	data.addColumn('number', 'Day');
+	data.addColumn('number', 'Guardians of the Galaxy');
+	data.addColumn('number', 'The Avengers');
+	data.addColumn('number', 'Transformers: Age of Extinction');
+
+	data.addRows([
+		[1,  37.8, 80.8, 41.8],
+		[2,  30.9, 69.5, 32.4],
+		[3,  25.4,   57, 25.7],
+		[4,  11.7, 18.8, 10.5],
+		[5,  11.9, 17.6, 10.4],
+		[6,   8.8, 13.6,  7.7],
+		[7,   7.6, 12.3,  9.6],
+		[8,  12.3, 29.2, 10.6],
+		[9,  16.9, 42.9, 14.8],
+		[10, 12.8, 30.9, 11.6],
+		[11,  5.3,  7.9,  4.7],
+		[12,  6.6,  8.4,  5.2],
+		[13,  4.8,  6.3,  3.6],
+		[14,  4.2,  6.2,  3.4]
+	]);
+
+	var options = {
+		chart: {
+		  title: 'Box Office Earnings in First Two Weeks of Opening',
+		  subtitle: 'in millions of dollars (USD)'
+		}
+	};
+
+
+	chartApparentPower.draw(data, options);
+	
+
+}
+
+function show1()
+{
+	var SHOW = 6;
+    var t = new Date();
+
+
+	
+	//var hour = ("0" + t.getHours()).slice(-2)
+	var min = ("0" + t.getMinutes()).slice(-2)
+	var sec = ("0" + t.getSeconds()).slice(-2)
+
+
+    var hm = /*hour + ":" +*/ min + ":" + sec;    
+
+    document.getElementById('idActiveEnergy').innerHTML = (activeEnergy_value[irigoyen] +  /*activeEnergy_value[irigoyen]*/ 0)/1000
+    
+    if(activePower_array.length > SHOW)
+        activePower_array.splice(1,1);
+    activePower_array.push([hm,activePower_value[irigoyen], activePower_value[tacuari]])
+    var data = google.visualization.arrayToDataTable(activePower_array);
+	options.title ="Potencia Activa";
+    chartActivePower.draw(data, options);        
+    
+    if(reactivePower_array.length > SHOW)
+        reactivePower_array.splice(1,1);
+    reactivePower_array.push([hm,reactivePower_value[irigoyen], reactivePower_value[tacuari]])
+    var data = google.visualization.arrayToDataTable(reactivePower_array);
+	options.title ="Potencia Reactiva";
+    chartReactivePower.draw(data, options);        
+	
+    if(apparentPower_array.length > SHOW)
+        apparentPower_array.splice(1,1);
+    apparentPower_array.push([hm,apparentPower_value[irigoyen], apparentPower_value[tacuari]])
+    var data = google.visualization.arrayToDataTable(apparentPower_array);
+	options.title ="Potencia Aparente";
+    chartApparentPower.draw(data, options);        
+	
+    if(powerFactor_array.length > SHOW)
+        powerFactor_array.splice(1,1);
+    powerFactor_array.push([hm,powerFactor_value[irigoyen], powerFactor_value[tacuari]])
+    var data = google.visualization.arrayToDataTable(powerFactor_array);
+	options.title ="Factor de Potencia";
+    chartPowerFactor.draw(data, options);        
+	
+    if(frequency_array.length > SHOW)
+        frequency_array.splice(1,1);
+    frequency_array.push([hm,frequency_value[irigoyen], frequency_value[tacuari]])
+    var data = google.visualization.arrayToDataTable(frequency_array);
+	options.title ="Frequencia";
+    chartFrequency.draw(data, options);        
+	
+    if(thd_array.length > SHOW)
+        thd_array.splice(1,1);
+    thd_array.push([hm,thd_value[irigoyen], thd_value[tacuari]])
+    var data = google.visualization.arrayToDataTable(thd_array);
+	options.title ="THD";
+    chartTHD.draw(data, options);        
+	
+    if(tempMeter_array.length > SHOW)
+        tempMeter_array.splice(1,1);
+    tempMeter_array.push([hm,tempMeter_value[irigoyen], tempMeter_value[tacuari]])
+    var data = google.visualization.arrayToDataTable(tempMeter_array);
+	options.title ="Temperatura Interna";
+    chartTempMeter.draw(data, options);        
+	
+    if(tempPhoton_array.length > SHOW)
+        tempPhoton_array.splice(1,1);
+    tempPhoton_array.push([hm,tempPhoton_value[irigoyen], tempPhoton_value[tacuari]])
+    var data = google.visualization.arrayToDataTable(tempPhoton_array);
+	options.title ="Temperatura Externa";
+    chartTempPhoton.draw(data, options);           
+
+/*
+    activePower_value = Math.random()*7;
+	reactivePower_value = Math.random()*7;
+	apparentPower_value = Math.random()*7;
+	powerFactor_value = Math.random()*7;
+	frequency_value = Math.random()*7;
+	thd_value = Math.random()*7;
+	tempMeter_value = Math.random()*7;
+	tempPhoton_value = Math.random()*7;
+    
+	setTimeout(show1, 3000);
+*/    
+}
+
+</script>
+
+    </head>
+	<body>
+		<div style="margin-left:20px;margin-top:5px">
+			<a href="www.logicalis.com"><img id="logicalis-logo" style="opacity:0.4" src="../images/logicalis-logo.png"></a>
+		</div>
+		<div style="margin-left:80px;">
+			<div style="margin-top:50px;font-size:22pt;">
+				Concepto<br/>
+				<table style="font-size:18pt;">
+					<tr>
+						<td>
+							<img src="images/gabinete-small.jpg">
+						</td>
+						<td>
+							<ul>
+								<li>
+									Medición de consumo
+								</li>
+								<li>
+									Lectura por interfaz RS-485 de los medidores de consumo Schneider
+								</li>
+								<li>
+									Obtención de los datos a través de un controller Photon de Particle
+								</li>
+								<li>
+									Publicación de los datos a la nube de Particle
+								</li>
+								<li>
+									Republicación de los datos a la nube Azure
+								</li>
+								<li>
+									Valores medidos
+                                    <div style="font-size:18;margin-left:20px;">
+                                        Consumo en KW/H<br />
+                                        Potencia Activa<br />
+                                        Potencia Reactiva<br />
+                                        Tensión de línea<br />
+                                    </div>
+								</li>
+							</ul>
+						
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div style="margin-top:50px;font-size:22pt;">
+				Arquitectura<br/>
+				<img src="images/arquitectura.gif" />
+			</div>
+			<div style="margin-top:50px;margin-bottom:10px;font-size:22pt;">
+				Dashboard (Ejemplo)
+			</div>
+			<div style="font-size:10pt;">
+                <iframe name="result" style="display:none;"></iframe>
+                <form target="result" action="https://api.particle.io/v1/devices/310036001047353138383138/setinterval?access_token=562810b39525e81f66b0d3d02bccdc5c7691de22" method="POST">
+                    Frequencia de muestreo
+                    <select name="args">
+                        <option selected="selected" value="5">5 segundos</option>
+                        <option value="10">10 segundos</option>
+                        <option value="15">15 segundos</option>
+                    </select>
+                    <input type="submit" value="Establecer">
+                </form>			
+            </div>
+            <table>
+				<tr>
+					<td>
+						<div class="energy">Consumo Total en kWh</div>
+
+					</td>
+					<td>
+						<div id="idActiveEnergy" class="energy"></div>
+					</td>
+				
+				</tr>
+				<tr>
+					<td>
+						<div class="energy">Consumo Total en Pesos</div>
+					</td>
+					<td>
+						<div id="idCost" class="energy"></div>
+					</td>
+				
+				</tr>
+				<tr>
+					<td>
+						<div class="cuadro-desc">Se aprovecha como potencia útil y es debida a los dispositivos resistivos. Valores positivos indican consumo y valores negativos indican entrega de energía a la red eléctrica.</div>
+						<div id="idActivePower" class="cuadro-consumo"></div>
+
+					</td>
+					<td>
+						<div class="cuadro-desc">Requerida por bobinas y condensadores para generar campos magnéticos o eléctricos, fluctúa por la red entre el generador y los receptores y no se transforma en trabajo efectivo. Valores positivos evidencian cargas inductivas y valores negativos evidencian cargas capacitivas.</div>
+						<div id="idReactivePower"  class="cuadro-consumo"></div>
+					</td>
+				
+				</tr>
+				<tr>
+					<td>
+						<div class="cuadro-desc">Es la totalidad de la potencia consumida por la carga, la suma vectorial de las potencias activa y reactiva.</div>
+						<div id="idApparentPower"  class="cuadro-consumo"></div>
+
+					</td>
+					<td>
+						<div class="cuadro-desc">Coseno del ángulo entre potencia activa y reactiva.</div>
+						<div id="idPowerFactor"  class="cuadro-consumo"></div>
+					</td>
+				
+				</tr>
+				<tr>
+					<td>
+						<div class="cuadro-desc">Proveniente de la señal sinusoidal con la que se alimenta al medidor.</div>
+						<div id="idFrequency"  class="cuadro-consumo"></div>
+
+					</td>
+					<td>
+						<div class="cuadro-desc">Distorsión armónica total de la primera fase, el porcentaje indica qué parte de la potencia total de la señal se distribuye en armónicos de otras frecuencias por fuera de los 50Hz.</div>
+						<div id="idTHD"  class="cuadro-consumo"></div>
+					</td>
+				
+				</tr>
+				<tr>
+					<td>
+						<div class="cuadro-desc">Temperatura Interna del Tablero Eléctrico</div>
+						<div id="idTempMeter"  class="cuadro-consumo"></div>
+
+					</td>
+					<td>
+						<div class="cuadro-desc">Temperatura Externa al Tablero Eléctrico</div>
+						<div id="idTempPhoton"  class="cuadro-consumo"></div>
+					</td>
+				
+				</tr>
+                <tr>
+                    <td colspan=2>Cargo fijo por mes: 471,24 $/mes</td>
+                </tr>
+                <tr>
+                    <td colspan="2">Cargo por potencia convenida: 170,82 $/kW-mes  (Se establece un máximo de potencia instantánea a consumir en el mes)</td>
+                </tr>
+                <tr>
+                    <td colspan="2">Cargo por potencia adquirida: 1,19 $/kW-mes  (El máximo  de potencia instantánea que verdaderamente se alcanzó en el mes)</td>
+                </tr>
+                <tr>
+                    <td colspan="2">Cargo variable: 0,452 $/kWh (El cargo variable por los kWh consumidos)</td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        Costo<br/><br/>
+                        $471,24 + $170,82 + 3,28*max(ActivePower[kW]) + 0,731*ActiveEnergy[kWh]
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        Impuestos<br/><br/>
+                        I.V.A.: 27% del Costo.<br/>
+                        Contribuciones: 6,383% del Costo.<br/>
+                        Factor de potencia: por cada centésimo menor a 0,85 se cobra un impuesto del 1,5% del valor de la tarifa (C).
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        Costo Total<br/><br/>
+                        Costo*(1,33383 + 1,5*(0,85-min(PowerFactor))) <br/>
+                        Sólo si el PowerFactor es menor a 0,85 en algún momento del mes 
+                    </td>
+                </tr>
+			</table>
+			
+			<div style="margin-top:50px;font-size:22pt;">
+				Servicios<br/>
+                <div style="font-size:18pt;">
+                    <ul>
+                        <li>
+                            Reportes en tiempo real
+                        </li>
+                        <li>
+                            Integración con otros sistemas via API
+                        </li>
+                        <li>
+                            Modalidad SaaS (Software as a service)
+                        </li>
+                    </ul>
+                </div>
+			</div>
+			
+
+		</div>
+	</body>
+</html>	
