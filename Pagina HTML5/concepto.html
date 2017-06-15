@@ -3,7 +3,6 @@
 	
 		<title>Concepto</title>
         <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-        <script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
 		<style>
             button {
              border: none;
@@ -82,7 +81,7 @@ google.charts.load('current', {'packages':['corechart','line']});
 google.charts.setOnLoadCallback(init);
 
 var wsUri = "ws://200.40.153.99:8002";
-//var wsUri = "ws://127.0.0.1:8002";
+// var wsUri = "ws://127.0.0.1:8002";
 
 var chartActivePower;
 var chartReactivePower;
@@ -193,8 +192,9 @@ var min_powerFactor = null;
 
 function onMessage(evt)
 {
+	console.log(evt.data)
     //alert(evt.data);
-    var meter = JSON.parse(evt.data);
+    var meter = JSON.parse(evt.data.toString());
 
     activePower_value[meter.coreid] = meter.activePower*1;
     reactivePower_value[meter.coreid] = meter.reactivePower*1;
@@ -251,7 +251,7 @@ function init()
 
 	//chartApparentPower = new google.charts.Line(document.getElementById('idApparentPower'));
 
-    // initWebSocket();
+    initWebSocket();
     show1();
 	
     
