@@ -15,7 +15,6 @@
  */
 //SYSTEM_MODE(MANUAL); // no need for cell connection in this fw
 
-//Non-MQTT Version
 #include <MQTT.h>
 #include <OneWire.h>
 #include "ModbusRtu.h"
@@ -23,7 +22,18 @@
 #include "SparkDallasTemperature.h"
 
 PRODUCT_ID(3416);
-PRODUCT_VERSION(10);
+PRODUCT_VERSION(15);
+
+/**
+ * if want to use IP address,
+ * byte server[] = { XXX,XXX,XXX,XXX };
+ * MQTT client(server, 1883, callback);
+ * want to use domain name,
+ * MQTT client("www.sample.com", 1883, callback);
+ **/
+
+byte server[] = {200,40,153,99};
+MQTT client(server, 1890, callbackMQTT);
 
 DallasTemperature dallas(new OneWire(D1));  // Init Dallas on pin digital pin 1
 uint16_t actpwr_au16data[2];                //!< data array for modbus network sharing
@@ -72,9 +82,16 @@ Modbus master(0, 1, TXEN_PIN, RXEN_PIN);// 0=Master 1=Serial1 initiaization usin
 
 #define NUMBER_OF_QUERIES 2
 modbus_t telegram[NUMBER_OF_QUERIES];
-unsigned long u32wait, previous, delay, wait_count, wait = 5;
+unsigned long u32wait, previous, delay, wait = 5, wait_count = 0;
 double PF, celsius, precelsius = 25;
 char payload[255];
+
+void callbackMQTT(char* topic, byte* payload, unsigned int length)
+{
+    //Function called when something is received
+    //in the subscribed topic.
+    //There are no current subscriptions.
+}
 
 void setup()
 {
@@ -96,11 +113,18 @@ void setup()
     u8state = u8query = 0;
     Serial.begin(9600);
     dallas.begin();
+    client.connect("Photon");
+    Serial.println();
 }
 
 void loop()
 {
     previous = millis();
+    if(!client.loop())
+    {
+        client.connect("Photon");
+        Serial.println();
+    }
     switch (u8state)
     {
         case 0:
@@ -187,8 +211,9 @@ void loop()
                             snprintf(payload, sizeof(payload), "{\"actpwr\":%f,\"reapwr\":%f,\"apppwr\":%f,\"pwrfc\":%f,\"freq\":%f,\"acten\":%u,\"thdvl1n\":%f,\"temp\":%f,\"celsius\":%f}", msg2dbl(actpwr_au16data), msg2dbl(reapwr_au16data), msg2dbl(apppwr_au16data), PF, msg2dbl(freq_au16data), acten_au16data[0]*281474976710656+acten_au16data[1]*4294967296+acten_au16data[2]*65536+acten_au16data[3], msg2dbl(thdvl1n_au16data), msg2dbl(temp_au16data), celsius);
                             delay = wait*1000-(millis()-previous);
                             delay(delay);
+                            client.publish("fromEventHub", payload);
                             wait_count += wait;
-                            if(wait_count == 300)
+                            if(wait_count == 900)
                             {
                                 Particle.publish("fromMeters", payload, PRIVATE);
                                 wait_count = 0;
@@ -202,4 +227,4 @@ void loop()
             break;
         }
     }
-} 
+}
