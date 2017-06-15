@@ -16,7 +16,7 @@
 	* Frecuencia
 	* THD
 	* Temperatura interna
-	* Temperatura externa_
+	* Temperatura externa
 	```
 ## <center>**Arquitectura**</center>
   
