@@ -1,5 +1,5 @@
 #ifndef MODBUSRTU_H
-#define MODBUSRTU_H
+#define MODBUSRTU_H 
 
 /**
  * @file 		ModbusRtu.h

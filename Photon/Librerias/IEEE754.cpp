@@ -1,4 +1,4 @@
-#include "IEEE754.h"
+#include "IEEE754.h" 
 
 double msg2dbl(uint16_t* au16data) {
     unsigned long BinaryDec = au16data[0] << 16;        //Two integer packages convert to one.

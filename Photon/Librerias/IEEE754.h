@@ -1,5 +1,5 @@
 #ifndef IEEE754_H
-#define IEEE754_H
+#define IEEE754_H 
 
 #include <math.h>
 #include "application.h"

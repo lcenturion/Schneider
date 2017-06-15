@@ -20,4 +20,4 @@
 	```
 ## <center>**Arquitectura**</center>
   
-![Figure 1-1](http://logicalis.cc/img/azure_graph.svg "Figure 1-1")
+![Figure 1-1](http://logicalis.cc/img/azure_graph.svg "Figure 1-1") 
