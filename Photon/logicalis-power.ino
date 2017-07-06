@@ -22,7 +22,7 @@
 #include "SparkDallasTemperature.h"
 
 PRODUCT_ID(3416);
-PRODUCT_VERSION(22);
+PRODUCT_VERSION(23);
 
 /**
  * if want to use IP address,
@@ -312,24 +312,28 @@ void loop()
                     case ACTIVE_ENERGY-1:
                         {
                             telegram[0].u16RegAdd = ACT_EN_P1-1;
+                            telegram[0].u16CoilsNo = ENERGY_LENGTH;
                             telegram[0].au16reg = actenp1_au16data;
                             break;
                         }
                     case ACT_EN_P1-1:
                         {
                             telegram[0].u16RegAdd = ACT_EN_P2-1;
+                            telegram[0].u16CoilsNo = ENERGY_LENGTH;
                             telegram[0].au16reg = actenp2_au16data;
                             break;
                         }
                     case ACT_EN_P2-1:
                         {
                             telegram[0].u16RegAdd = ACT_EN_P3-1;
+                            telegram[0].u16CoilsNo = ENERGY_LENGTH;
                             telegram[0].au16reg = actenp3_au16data;
                             break;
                         }
                     case ACT_EN_P3-1:
                         {
                             telegram[0].u16RegAdd = RT_NRG_LOG_DAY-1;
+                            telegram[0].u16CoilsNo = ENERGY_LENGTH;
                             telegram[0].au16reg = actenrtday_au16data;
                             break;
                         }
@@ -375,22 +379,23 @@ void loop()
                             precelsius = celsius;
                             particle_delay = wait*1000-(millis()-previous);
                             delay(particle_delay);
-                            snprintf(totals, sizeof(totals), "{\"coreid\":\"%s\",\"actpwr\":%f,\"reapwr\":%f,\"apppwr\":%f,\"pwrfc\":%f,\"freq\":%f,\"acten\":%u,\"actenrtday\":%u,\"actpwrpk\":%f,\"temp\":%f,\"celsius\":%f}", Particle.deviceID().c_str(), msg2dbl(actpwr_au16data), msg2dbl(reapwr_au16data), msg2dbl(apppwr_au16data), PF, msg2dbl(freq_au16data), acten_au16data[0]*281474976710656+acten_au16data[1]*4294967296+acten_au16data[2]*65536+acten_au16data[3], actenrtday_au16data[0]*281474976710656+actenrtday_au16data[1]*4294967296+actenrtday_au16data[2]*65536+actenrtday_au16data[3], msg2dbl(actpwrpk_au16data), msg2dbl(temp_au16data), celsius);
-                            client.publish("fromEventHubTotals", totals);
-                            snprintf(phase1, sizeof(phase1), "{\"coreid\":\"%s\",\"actpwrp1\":\"%f\",\"reapwrp1\":\"%f\",\"apppwrp1\":\"%f\",\"pwrfcp1\":\"%f\",\"actenp1\":\"%f\",\"thdvl1n\":\"%f\"}", Particle.deviceID().c_str(), msg2dbl(actpwrp1_au16data), msg2dbl(reapwrp1_au16data), msg2dbl(apppwrp1_au16data), PF1, actenp1_au16data[0]*281474976710656+actenp1_au16data[1]*4294967296+actenp1_au16data[2]*65536+actenp1_au16data[3], msg2dbl(thdvl1n_au16data));
-                            client.publish("fromEventHubPhase1", phase1);
-                            snprintf(phase2, sizeof(phase2), "{\"coreid\":\"%s\",\"actpwrp2\":\"%f\",\"reapwrp2\":\"%f\",\"apppwrp2\":\"%f\",\"pwrfcp2\":\"%f\",\"actenp2\":\"%f\",\"thdvl2n\":\"%f\"}", Particle.deviceID().c_str(), msg2dbl(actpwrp2_au16data), msg2dbl(reapwrp2_au16data), msg2dbl(apppwrp2_au16data), PF2, actenp2_au16data[0]*281474976710656+actenp2_au16data[1]*4294967296+actenp2_au16data[2]*65536+actenp2_au16data[3], msg2dbl(thdvl2n_au16data));
-                            client.publish("fromEventHubPhase2", phase2);
-                            snprintf(phase3, sizeof(phase3), "{\"coreid\":\"%s\",\"actpwrp3\":\"%f\",\"reapwrp3\":\"%f\",\"apppwrp3\":\"%f\",\"pwrfcp3\":\"%f\",\"actenp3\":\"%f\",\"thdvl3n\":\"%f\"}", Particle.deviceID().c_str(), msg2dbl(actpwrp3_au16data), msg2dbl(reapwrp3_au16data), msg2dbl(apppwrp3_au16data), PF3, actenp3_au16data[0]*281474976710656+actenp3_au16data[1]*4294967296+actenp3_au16data[2]*65536+actenp3_au16data[3], msg2dbl(thdvl3n_au16data));
-                            client.publish("fromEventHubPhase3", phase3);
+                            snprintf(totals, sizeof(totals), "{\"event\":\"%s\",\"coreid\":\"%s\",\"actpwr\":\"%f\",\"reapwr\":\"%f\",\"apppwr\":\"%f\",\"pwrfc\":\"%f\",\"acten\":\"%u\",\"thdvln\":\"%s\",\"freq\":\"%f\",\"actenrtday\":\"%u\",\"actpwrpk\":\"%f\"}", "Totals", Particle.deviceID().c_str(), msg2dbl(actpwr_au16data), msg2dbl(reapwr_au16data), msg2dbl(apppwr_au16data), PF, acten_au16data[0]*281474976710656+acten_au16data[1]*4294967296+acten_au16data[2]*65536+acten_au16data[3], "NONE", msg2dbl(freq_au16data), actenrtday_au16data[0]*281474976710656+actenrtday_au16data[1]*4294967296+actenrtday_au16data[2]*65536+actenrtday_au16data[3], msg2dbl(actpwrpk_au16data));
+                            client.publish("fromMeters", totals);
+                            snprintf(phase1, sizeof(phase1), "{\"event\":\"%s\",\"coreid\":\"%s\",\"actpwr\":\"%f\",\"reapwr\":\"%f\",\"apppwr\":\"%f\",\"pwrfc\":\"%f\",\"acten\":\"%u\",\"thdvln\":\"%f\",\"freq\":\"%s\",\"actenrtday\":\"%s\",\"actpwrpk\":\"%s\"}", "One", Particle.deviceID().c_str(), msg2dbl(actpwrp1_au16data), msg2dbl(reapwrp1_au16data), msg2dbl(apppwrp1_au16data), PF1, actenp1_au16data[0]*281474976710656+actenp1_au16data[1]*4294967296+actenp1_au16data[2]*65536+actenp1_au16data[3], msg2dbl(thdvl1n_au16data), "NONE", "NONE", "NONE");
+                            client.publish("fromMeters", phase1);
+                            snprintf(phase2, sizeof(phase2), "{\"event\":\"%s\",\"coreid\":\"%s\",\"actpwr\":\"%f\",\"reapwr\":\"%f\",\"apppwr\":\"%f\",\"pwrfc\":\"%f\",\"acten\":\"%u\",\"thdvln\":\"%f\",\"freq\":\"%s\",\"actenrtday\":\"%s\",\"actpwrpk\":\"%s\"}", "Two", Particle.deviceID().c_str(), msg2dbl(actpwrp2_au16data), msg2dbl(reapwrp2_au16data), msg2dbl(apppwrp2_au16data), PF2, actenp2_au16data[0]*281474976710656+actenp2_au16data[1]*4294967296+actenp2_au16data[2]*65536+actenp2_au16data[3], msg2dbl(thdvl2n_au16data), "NONE", "NONE", "NONE");
+                            client.publish("fromMeters", phase2);
+                            snprintf(phase3, sizeof(phase3), "{\"event\":\"%s\",\"coreid\":\"%s\",\"actpwr\":\"%f\",\"reapwr\":\"%f\",\"apppwr\":\"%f\",\"pwrfc\":\"%f\",\"acten\":\"%u\",\"thdvln\":\"%f\",\"freq\":\"%s\",\"actenrtday\":\"%s\",\"actpwrpk\":\"%s\"}", "Three", Particle.deviceID().c_str(), msg2dbl(actpwrp3_au16data), msg2dbl(reapwrp3_au16data), msg2dbl(apppwrp3_au16data), PF3, actenp3_au16data[0]*281474976710656+actenp3_au16data[1]*4294967296+actenp3_au16data[2]*65536+actenp3_au16data[3], msg2dbl(thdvl3n_au16data), "NONE", "NONE", "NONE");
+                            client.publish("fromMeters", phase3);
                             wait_count += wait;
                             if(wait_count == 300)
                             {
-                                //Missing real time active energy per day, per phase and power demand information.
-                                Particle.publish("fromMetersTotals", totals, PRIVATE);
-                                Particle.publish("fromMetersPhase1", phase1, PRIVATE);
-                                Particle.publish("fromMetersPhase2", phase2, PRIVATE);
-                                Particle.publish("fromMetersPhase3", phase3, PRIVATE);
+                                //Missing real time active energy per day,
+                                //per phase and power demand information.
+                                Particle.publish("fromMeters", totals, PRIVATE);
+                                Particle.publish("fromMeters", phase1, PRIVATE);
+                                Particle.publish("fromMeters", phase2, PRIVATE);
+                                Particle.publish("fromMeters", phase3, PRIVATE);
                                 wait_count = 0;
                             }
                             break;    
