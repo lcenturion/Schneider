@@ -22,7 +22,7 @@
 #include "SparkDallasTemperature.h"
 
 PRODUCT_ID(3416);
-PRODUCT_VERSION(23);
+PRODUCT_VERSION(26);
 
 /**
  * if want to use IP address,
@@ -61,6 +61,7 @@ uint16_t actenp3_au16data[4];
 uint16_t thdvl1n_au16data[2];
 uint16_t thdvl2n_au16data[2];
 uint16_t thdvl3n_au16data[2];
+uint16_t thdvlnavg_au16data[2];
 uint16_t actpwrpk_au16data[2];
 uint16_t actenrtday_au16data[4];
 uint8_t u8state;                            //!< machine state
@@ -100,6 +101,7 @@ uint8_t u8query;                            //!< pointer to message query
 #define THD_V_L1_N          45120
 #define THD_V_L2_N          45122
 #define THD_V_L3_N          45124
+#define THD_V_L_N_AVG       45126
 #define RT_NRG_LOG_DAY      45605
 
 /*
@@ -120,14 +122,14 @@ Modbus master(0, 1, TXEN_PIN, RXEN_PIN);// 0=Master 1=Serial1 initiaization usin
 
 #define NUMBER_OF_QUERIES 2
 modbus_t telegram[NUMBER_OF_QUERIES];
-unsigned long u32wait, lastConnect, previous, particle_delay, wait = 5, wait_count = 0;
+unsigned long u32wait, wait = 5, wait_count = 0;
 double PF, PF1, PF2, PF3, celsius, precelsius = 25;
 char totals[255], phase1[255], phase2[255], phase3[255];
 
 void callbackMQTT(char* topic, byte* payload, unsigned int length)
 {
-    //Function called when something is
-    //received in the subscribed topic. 
+    //Function called when something is received
+    //in the subscribed topic. 
     //There are no current subscriptions.
 }
 
@@ -155,7 +157,6 @@ void setup()
 
 void loop()
 {
-    previous = millis();
     if(!client.isConnected())
         client.connect("Photon");
     switch (u8state)
@@ -312,28 +313,24 @@ void loop()
                     case ACTIVE_ENERGY-1:
                         {
                             telegram[0].u16RegAdd = ACT_EN_P1-1;
-                            telegram[0].u16CoilsNo = ENERGY_LENGTH;
                             telegram[0].au16reg = actenp1_au16data;
                             break;
                         }
                     case ACT_EN_P1-1:
                         {
                             telegram[0].u16RegAdd = ACT_EN_P2-1;
-                            telegram[0].u16CoilsNo = ENERGY_LENGTH;
                             telegram[0].au16reg = actenp2_au16data;
                             break;
                         }
                     case ACT_EN_P2-1:
                         {
                             telegram[0].u16RegAdd = ACT_EN_P3-1;
-                            telegram[0].u16CoilsNo = ENERGY_LENGTH;
                             telegram[0].au16reg = actenp3_au16data;
                             break;
                         }
                     case ACT_EN_P3-1:
                         {
                             telegram[0].u16RegAdd = RT_NRG_LOG_DAY-1;
-                            telegram[0].u16CoilsNo = ENERGY_LENGTH;
                             telegram[0].au16reg = actenrtday_au16data;
                             break;
                         }
@@ -358,6 +355,12 @@ void loop()
                         }
                     case THD_V_L3_N-1:
                         {
+                            telegram[0].u16RegAdd = THD_V_L_N_AVG-1;
+                            telegram[0].au16reg = thdvlnavg_au16data;
+                            break;    
+                        }
+                    case THD_V_L_N_AVG-1:
+                        {
                             telegram[0].u16RegAdd = ACT_PWR_PK_DMND-1;
                             telegram[0].au16reg = actpwrpk_au16data;
                             break;    
@@ -377,9 +380,7 @@ void loop()
                             if(celsius == -127)
                                 celsius = precelsius;
                             precelsius = celsius;
-                            particle_delay = wait*1000-(millis()-previous);
-                            delay(particle_delay);
-                            snprintf(totals, sizeof(totals), "{\"event\":\"%s\",\"coreid\":\"%s\",\"actpwr\":\"%f\",\"reapwr\":\"%f\",\"apppwr\":\"%f\",\"pwrfc\":\"%f\",\"acten\":\"%u\",\"thdvln\":\"%s\",\"freq\":\"%f\",\"actenrtday\":\"%u\",\"actpwrpk\":\"%f\"}", "Totals", Particle.deviceID().c_str(), msg2dbl(actpwr_au16data), msg2dbl(reapwr_au16data), msg2dbl(apppwr_au16data), PF, acten_au16data[0]*281474976710656+acten_au16data[1]*4294967296+acten_au16data[2]*65536+acten_au16data[3], "NONE", msg2dbl(freq_au16data), actenrtday_au16data[0]*281474976710656+actenrtday_au16data[1]*4294967296+actenrtday_au16data[2]*65536+actenrtday_au16data[3], msg2dbl(actpwrpk_au16data));
+                            snprintf(totals, sizeof(totals), "{\"event\":\"%s\",\"coreid\":\"%s\",\"actpwr\":\"%f\",\"reapwr\":\"%f\",\"apppwr\":\"%f\",\"pwrfc\":\"%f\",\"acten\":\"%u\",\"thdvln\":\"%f\",\"freq\":\"%f\",\"actenrtday\":\"%u\",\"actpwrpk\":\"%f\"}", "Totals", Particle.deviceID().c_str(), msg2dbl(actpwr_au16data), msg2dbl(reapwr_au16data), msg2dbl(apppwr_au16data), PF, acten_au16data[0]*281474976710656+acten_au16data[1]*4294967296+acten_au16data[2]*65536+acten_au16data[3], msg2dbl(thdvlnavg_au16data), msg2dbl(freq_au16data), actenrtday_au16data[0]*281474976710656+actenrtday_au16data[1]*4294967296+actenrtday_au16data[2]*65536+actenrtday_au16data[3], msg2dbl(actpwrpk_au16data));
                             client.publish("fromMeters", totals);
                             snprintf(phase1, sizeof(phase1), "{\"event\":\"%s\",\"coreid\":\"%s\",\"actpwr\":\"%f\",\"reapwr\":\"%f\",\"apppwr\":\"%f\",\"pwrfc\":\"%f\",\"acten\":\"%u\",\"thdvln\":\"%f\",\"freq\":\"%s\",\"actenrtday\":\"%s\",\"actpwrpk\":\"%s\"}", "One", Particle.deviceID().c_str(), msg2dbl(actpwrp1_au16data), msg2dbl(reapwrp1_au16data), msg2dbl(apppwrp1_au16data), PF1, actenp1_au16data[0]*281474976710656+actenp1_au16data[1]*4294967296+actenp1_au16data[2]*65536+actenp1_au16data[3], msg2dbl(thdvl1n_au16data), "NONE", "NONE", "NONE");
                             client.publish("fromMeters", phase1);
@@ -387,11 +388,10 @@ void loop()
                             client.publish("fromMeters", phase2);
                             snprintf(phase3, sizeof(phase3), "{\"event\":\"%s\",\"coreid\":\"%s\",\"actpwr\":\"%f\",\"reapwr\":\"%f\",\"apppwr\":\"%f\",\"pwrfc\":\"%f\",\"acten\":\"%u\",\"thdvln\":\"%f\",\"freq\":\"%s\",\"actenrtday\":\"%s\",\"actpwrpk\":\"%s\"}", "Three", Particle.deviceID().c_str(), msg2dbl(actpwrp3_au16data), msg2dbl(reapwrp3_au16data), msg2dbl(apppwrp3_au16data), PF3, actenp3_au16data[0]*281474976710656+actenp3_au16data[1]*4294967296+actenp3_au16data[2]*65536+actenp3_au16data[3], msg2dbl(thdvl3n_au16data), "NONE", "NONE", "NONE");
                             client.publish("fromMeters", phase3);
+                            delay(wait*1000);
                             wait_count += wait;
                             if(wait_count == 300)
                             {
-                                //Missing real time active energy per day,
-                                //per phase and power demand information.
                                 Particle.publish("fromMeters", totals, PRIVATE);
                                 Particle.publish("fromMeters", phase1, PRIVATE);
                                 Particle.publish("fromMeters", phase2, PRIVATE);
