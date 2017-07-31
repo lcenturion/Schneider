@@ -1,0 +1,361 @@
+<html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang=""> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8" lang=""> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9" lang=""> <![endif]-->
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>Alarmas y Notificaciones en Twilio (Demo)</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <link rel="stylesheet" href="../css/bootstrap.min.css">
+       
+        <link rel="stylesheet" href="../css/bootstrap-theme.min.css">
+        <link rel="stylesheet" href="../css/main.css">
+        <link href="https://fonts.googleapis.com/css?family=Heebo:100,300,400,500" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css?family=Trirong:100,300,400,500" rel="stylesheet">
+        <link rel="stylesheet" href="../fonts/font-awesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+		<script src="js/jquery.tempgauge.js"></script>
+        <link rel="stylesheet" href="css/star-rating.min.css">
+		<script src="js/star-rating.min.js"></script>
+
+        
+        <style>
+              html, body {
+                height: 100%;
+                margin: 0;
+                padding: 0;
+              }
+              h3{
+                font-size:16pt;
+              }
+              h4{
+                font-size:14pt;
+              }
+              table {border-spacing: 2px;}
+              td    {padding: 6px;}
+        </style>        
+    </head>
+    <body>
+        <!--[if lt IE 8]>
+            <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+        <header>
+   <nav class="navbar navbar-default">
+  <div class="container-fluid">
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+     <a href="index.html"><img class="img-responsive logo" src="../img/logo_logicalis.svg"></a>
+    </div>
+
+    <!-- Collect the nav links, forms, and other content for toggling -->
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav">
+       <li class="active"><a class="noborder" href="../index.html">Home<span class="sr-only">(current)</span></a></li>
+        <li><a class="noborder" href="http://www.la.logicalis.com/contact/argentina/" target="_blank">Contacto</a></li>
+        <!--<li><a href="#"><i class="fa fa-volume-up" aria-hidden="true"></i></a></li>-->
+       
+      </ul>
+     
+      
+    </div><!-- /.navbar-collapse -->
+    
+  </div><!-- /.container -->
+   <div class="leftleave">
+ <img src="../img/leave-left.png" class="leftleaveimg">
+ </div>
+    <div class="rightleave">
+ <img src="../img/rightcoconuts.png" class="rightleaveimg">
+ </div>
+</nav>
+ <div id="tagline">
+<div class="col-md-3"></div>
+<div class="col-md-6"> <img src="../img/tagline.png" class="img-responsive"></div>
+<div class="col-md-3"></div>
+</div> 
+ 
+</header>
+
+   
+   
+
+    <div class="container">
+    <section id="intern_section">
+    
+        <div style="margin-top:10px;margin-left:10px;font-size:16pt;">
+            Alarmas y Notificaciones.<br/>Plataformas: Twilio + Amazon + Azure (Demostración)
+        </div>
+        <div style="margin-left:10px;font-size:12pt;">
+            La siguiente demostración tiene como objetivo integrar las tres plataformas.<br/>
+            Para las alarmas se prevee tres niveles de escalamiento, por mail usando SNS de Amazon, por SMS usando Twilio y finalmente realizando una llamada telefónica usando Twilio.<br/>
+            <br />
+            Al presionar el botón Comenzar se verá una simulación de cómo funciona el último nivel de escalamiento, es decir, directamente haciendo una llamada de voz.<br/>
+            Al llegar al valor límite de 26 grados se llama al número telefónico indicado en Notificar.<br/>
+            El menú de opciones permitirá al operador indicar si el incidente está en tratamiento o directamente pedir que lo transfiera al responsable.
+            
+        </div>
+        <div>
+        <button onclick="start();" id="idCall" class="logicalisbutton">COMENZAR</button>
+        </div>
+        <br />
+        <div id="twilio">
+
+            <table>
+                <tr>
+                    <td>Notificar</td>
+                    <td>
+                        <select onchange="document.getElementById('idNotificar').value = this.value;">
+                          <option value=""></option>
+                          <option value="+5491150170327">Gabriel Tasin</option>
+                          <option value="+59899686006">Oscar Nicasio</option>
+                          <option value="+56944071634">Mauricio Suga</option>
+                          <option value="+5491168330304">Marcelo Rocha (Móvil)</option>
+                          <option value="+5491144350188">Nicolás Laurutis</option>
+                          <option value="+5491150170343">Nicolás Macloughlin</option>
+                          <option value="+5491168138749">Carlos Spera</option>
+                          <option value="+56944071635">Daniel Marquesim</option>
+                          <option value="+541152820308">Marcelo Rocha (Escritorio)</option>
+                          <option value="+541152820447">Lucas Centurión (Escritorio)</option>
+                          <option value="+5491139252001">Lucas Centurión (Móvil)</option>
+                          <option value="+541132829377">Carlos Pingarilho</option>
+                        </select>                
+                    </td>
+                    <td><input type="text" id="idNotificar"/></td>
+                </tr>
+                <tr>
+                    <td>Responsable</td>
+                    <td>
+                        <select onchange="document.getElementById('idResponsable').value = this.value;">
+                          <option value=""></option>
+                          <option value="+5491150170327">Gabriel Tasin</option>
+                          <option value="+59899686006">Oscar Nicasio</option>
+                          <option value="+56944071634">Mauricio Suga</option>
+                          <option value="+5491168330304">Marcelo Rocha (Móvil)</option>
+                          <option value="+5491144350188">Nicolás Laurutis</option>
+                          <option value="+5491150170343">Nicolás Macloughlin</option>
+                          <option value="+5491168138749">Carlos Spera</option>
+                          <option value="+56944071635">Daniel Marquesim</option>
+                          <option value="+541152820308">Marcelo Rocha (Escritorio)</option>
+                          <option value="+541152820447">Lucas Centurión (Escritorio)</option>
+                          <option value="+5491139252001">Lucas Centurión (Móvil)</option>
+                          <option value="+541132829377">Carlos Pingarilho</option>
+                       </select>                
+                    </td>
+                    <td><input type="text" id="idResponsable"/></td>
+                </tr>
+                <tr>
+                    <td>Piso 19</td>
+                    <td>Piso 20</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>
+                    </td>
+                    <td>
+                    </td>
+                    <td>
+                        <label for="input-1" class="control-label">Rate</label>
+                        <input value="3" id="idRating" name="rating" class="rating-loading" data-min="0" data-max="5" data-step="1">
+                    </td>
+                </tr>
+                <tr>
+                    <td><div id="idPiso19"></div></td>
+                    <td><div id="idPiso20"></td>
+                    <td style="vertical-align:top">
+                        <div id="idMessage"></div>
+                    </td>
+                </tr>
+            </table>
+
+	<script type="text/javascript">
+        //http://plugins.krajee.com/star-rating STAR RATING
+
+        // var wsUri = "ws://200.40.153.99:8084";
+        var wsUri = "ws://localhost:8084";
+        var websocket;
+        function initWebSocket()
+        {
+            websocket = new WebSocket(wsUri);
+            websocket.onopen = function(evt) { onOpen(evt) };
+            websocket.onclose = function(evt) { onClose(evt) };
+            websocket.onmessage = function(evt) { onMessage(evt) };
+            websocket.onerror = function(evt) { onError(evt) };
+        }
+        function onOpen(evt)
+        {
+            console.log("CONNECTED");
+            addMessage({tipo:'info',text:'Conectado'});
+
+            /*
+            websocket.send(JSON.stringify({
+                }));
+            */
+        }
+        function onClose(evt)
+        {
+            console.log("Disconnected");
+        }
+        function onError(evt)
+        {
+            console.log('Websocket Error:' + evt.data);
+        }
+        function onMessage(evt)
+        {
+            console.log(evt.data);
+            var r = JSON.parse(evt.data);
+            if(r.type == 'rating')
+            {
+                $("#idRating").rating("update",r.value);
+            }
+            addMessage({tipo:r.type,text:r.message});
+        }
+    
+    
+    
+    
+        var state = 0;
+        function init ()
+        {
+            setTemp("idPiso19", "16", "#C0FFC0");
+            setTemp("idPiso20", "19", "#C0FFC0");
+            $("#idRating").rating({displayOnly:true, step:1});
+            //alert(document.getElementById("idRating").value);
+            //document.getElementById("idRating").value=1;
+            //$("#idRating").rating({value:1});
+            $("#idRating").rating("update",0);
+            initWebSocket();
+        
+        }
+        function start()
+        {
+            setTemp("idPiso19", "16", "#C0FFC0");
+            setTemp("idPiso20", "19", "#C0FFC0");
+            $("#idRating").rating("update",0);
+
+
+            if(document.getElementById('idNotificar').value.trim() == '' ||
+                document.getElementById('idResponsable').value.trim() == '')
+                addMessage({tipo:'warning',text:'Debe completar los campos Notificar y Responsable'});
+
+                //setMessage('Debe especificar los campos Responsable y Notificar')
+            else
+            {
+                state = 0;
+                document.getElementById('idMessage').innerHTML = '';
+                machine();
+            }
+        }
+        function setMessage(msg)
+        {
+            document.getElementById('idMessage').innerHTML = msg;
+        }
+        
+        function addMessage(msg)
+        {
+            var m = "";
+            if(msg.tipo == 'info')
+                m = '<p>' + '<span class="material-icons" style="color:blue; vertical-align: middle;">add_alert</span><span class="my-text">' + msg.text +'</span></p>';
+            else if (msg.tipo == 'error')
+                m = '<p>' + '<span class="material-icons" style="color:red; vertical-align: middle;">error</span><span class="my-text">' + msg.text +'</span></p>';
+            else if (msg.tipo == 'warning')
+                m = '<p>' + '<span class="material-icons" style="color:#c0c000; vertical-align: middle;">warning</span><span class="my-text">' + msg.text +'</span></p>';
+            else if (msg.tipo == 'info-background')
+                m = '<p>' + '<span class="material-icons" style="color:blue; vertical-align: middle;">add_alert</span><span class="my-text" style="background-color:#FFFFC0">' + msg.text +'</span></p>';
+            else if (msg.tipo == 'rating')
+                m = '<p>' + '<span class="material-icons" style="color:blue; vertical-align: middle;">add_alert</span><span class="my-text" style="background-color:#FFFFC0">' + msg.text +'</span></p>';
+            else
+                return;
+  
+
+  
+            var d = document.createElement("div");
+            d.style.wordWrap = "break-word";
+            d.innerHTML = m;
+            //mensajes.appendChild(d);
+            var list = document.getElementById("idMessage");
+            list.insertBefore(d, list.childNodes[0]); 
+        }        
+        function machine()
+        {
+            switch(state)
+            {
+            case 0:
+                //setTemp("idPiso19", "19", "#C0FFC0");
+                addMessage({tipo:'info',text:'La temperatura del piso 19 va a comenzar a elevarse'});
+                setTimeout(machine,5000);
+                state++;
+                break;
+            case 1:
+                setTemp("idPiso19", "20", "#FFFFC0");
+                addMessage({tipo:'warning',text:'Se manda una alarma por Mail. Si pasados los 10 minutos continúa en ese estado se envía un SMS'});
+                setTimeout(machine,7000);
+                state++;
+                break;
+            case 2:
+                addMessage({tipo:'error',text:'Estado Crítico, comienza el proceso de notificación telefónica'});
+                setTemp("idPiso19", "26", "#FF4040");
+                //setTimeout(machine,5000);
+                websocket.send(JSON.stringify({
+                    cmd: "call",
+                    notificar:document.getElementById('idNotificar').value.trim(),
+                    responsable:document.getElementById('idResponsable').value.trim()
+                    }));
+                
+                break;
+            
+            }
+        
+        }
+        
+        
+        
+        function setTemp(sensor, grados, color)
+        {
+            document.getElementById(sensor).innerHTML = "<div class='" + sensor + "'>" + grados + "&degC" + "</div>";
+            
+            $("." + sensor).tempGauge({
+                width:70, 
+                borderWidth:4, 
+                showLabel:true, 
+                fillColor:color,
+                defaultTemp: 5,
+                 minTemp: 0,
+                 maxTemp: 30
+                });
+        }
+        window.addEventListener("load", init, false);			
+
+    </script>
+    </section>
+    <hr>
+    </div>
+      
+    <footer class="container-fluid">
+    <div class="container-fluid leftcero">
+      <div class="col-md-4 leftcero"><a href="http://www.la.logicalis.com/" target="_blank"><img class="img-responsive logo_footer" src="../img/logo_logicalis.svg"></a></div>
+       <div class="col-md-4"><img class="img-responsive palmera" src="../img/palmera.svg"></div>
+      <div class="col-md-4">
+      <div class="rightfloat">
+      <a class="socialmedia noborder" href="https://www.youtube.com/user/LogicalisLatam" target="_blank"><i class="fa fa-youtube" aria-hidden="true"></i></a>
+      <a class="socialmedia noborder"  href="https://www.facebook.com/LogicalisLatam" target="_blank"><i class="fa fa-facebook" aria-hidden="true"></i></a>
+       <a class="socialmedia noborder"  href="https://twitter.com/logicalislatam" target="_blank"><i class="fa fa-twitter" aria-hidden="true"></i></a>
+       <a class="socialmedia noborder"  href="https://www.linkedin.com/company/logicalis" target="_blank"><i class="fa fa-linkedin" aria-hidden="true"></i></a>
+       <a class="socialmedia noborder"  href="http://www.la.logicalis.com/news/rss/" target="_blank"><i class="fa fa-rss" aria-hidden="true"></i></a>
+       <a class="link_footer noborder" href="http://www.la.logicalis.com/contact/argentina/" target="_blank">CONTACTO</a></div>
+    </div>
+    </div>
+       
+    </footer> <!-- /container -->      
+    </body>
+</html>
