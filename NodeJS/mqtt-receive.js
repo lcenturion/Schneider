@@ -1,12 +1,12 @@
 var ws = require('nodejs-websocket');
 var mqtt = require('mqtt');
-var MQTT = "mqtt://200.40.153.99:1890";
- 
+var MQTT = "mqtt://127.0.0.1:1890";
+
 process.on('uncaughtException', function (err) {
   console.error(err.stack);
   console.log("Node NOT Exiting...");
 }); 
- 
+
 var wsServer = ws.createServer();
 wsServer.listen(8002);
 
@@ -23,20 +23,23 @@ wsServer.on('close', function(){
     wsServer.listen(8002);
 });
 
-var client  = mqtt.connect(MQTT);
-client.on('connect', function () {
+var mqttClient  = mqtt.connect(MQTT);
+mqttClient.on('connect', function () {
     console.log('mqtt (re)connected');
-    client.subscribe('fromEventHub/#');
+    mqttClient.subscribe('fromMeters');
+    mqttClient.subscribe('fromTemperature');
 });
 
-client.on('message', function (topic, message) {
+mqttClient.on('message', function (topic, message) {
     // message is Buffer
     console.log('MQTT Topic:' + topic + ' message:' + message.toString());
-    var fromEventHub = JSON.parse(message.toString());
-    broadcast(fromEventHub);
+    var msg = new Object();
+    msg.topic = topic;
+    msg.data =  JSON.parse(message.toString());
+    broadcast(msg);
 });
 
-client.on('error', function (message) {
+mqttClient.on('error', function (message) {
     console.log('MQTT Client Error:' + message.toString());
 });
 
@@ -44,5 +47,5 @@ client.on('error', function (message) {
 function broadcast(msg) {
     wsServer.connections.forEach(function (conn) {
         conn.sendText(JSON.stringify(msg));
-    })
+    });
 }  
