@@ -93,7 +93,8 @@ google.charts.setOnLoadCallback(init);
 
 //var wsUri = "ws://200.40.153.99:8002";
  var wsUriMQTT = "ws://200.40.153.99:8002";
- var wsUriDocumentDb = "ws://127.0.0.1:8003";
+ var wsUriDocumentDb = "ws://cd8315b4.ngrok.io";  
+ // var wsUri = "ws://200.40.153.99:8084";
 
 
 var irigoyen = "2e0028000a47353138383138";
@@ -106,8 +107,9 @@ var chartReactivePowerTotals;
 var chartApparentPowerTotals;
 var chartPowerFactorTotals;
 var chartFrequencyTotals;
-var charttempMeterTotals;
-var chartTempPhotonTotals;
+var chartTempMeterTotals;
+var chartTempSensor19Totals;
+var chartTempSensor20Totals;
 
 var activePowerTotals_array = [['Hora', 'Irigoyen', 'Tacuari']];
 var activePowerTotals_value = {};
@@ -144,10 +146,15 @@ var tempMeterTotals_value = {};
 tempMeterTotals_value[irigoyen] = 0;
 tempMeterTotals_value[tacuari] = 0;
 
-var tempPhotonTotals_array = [['Hora', 'Irigoyen', 'Tacuari']];
-var tempPhotonTotals_value = {};
-tempPhotonTotals_value[irigoyen] = 0;
-tempPhotonTotals_value[tacuari] = 0; 
+var tempSensor19Totals_array = [['Hora', 'Irigoyen', 'Tacuari']];
+var tempSensor19Totals_value = {};
+tempSensor19Totals_value[irigoyen] = 0;
+tempSensor19Totals_value[tacuari] = 0; 
+
+var tempSensor20Totals_array = [['Hora', 'Irigoyen', 'Tacuari']];
+var tempSensor20Totals_value = {};
+tempSensor20Totals_value[irigoyen] = 0;
+tempSensor20Totals_value[tacuari] = 0; 
 
 var activeEnergyTotals_value = {};
 activeEnergyTotals_value[tacuari]=0;
@@ -272,6 +279,9 @@ var activeEnergyPhase3_value = {};
 activeEnergyPhase3_value[tacuari]=0;
 activeEnergyPhase3_value[irigoyen]=0;
 
+var initialData;
+var initialized = false;
+
 // chartArea:{left:10,top:10}
 
 var options = {
@@ -290,7 +300,8 @@ var options = {
 };
 
 var websocketMQTT;
-// var websocketDDb;
+var websocketDDb;
+// var websocketTwilio;
 function initWebSocket()
 {
     websocketMQTT = new WebSocket(wsUriMQTT);
@@ -300,12 +311,36 @@ function initWebSocket()
     websocketMQTT.onerror = function(evt) { onErrorMQTT(evt) };
 
 
-//     websocketDDb = new WebSocket(wsUriDocumentDb);
-//     websocketDDb.onopen = function(evt) { onOpenDDb(evt) };
-//     websocketDDb.onclose = function(evt) { onCloseDDb(evt) };
-//     websocketDDb.onmessage = function(evt) { onMessageDDb(evt) };
-//     websocketDDb.onerror = function(evt) { onErrorDDb(evt) };
+    /*websocketDDb = new WebSocket(wsUriDocumentDb);
+    websocketDDb.onopen = function(evt) { onOpenDDb(evt) };
+    websocketDDb.onclose = function(evt) { onCloseDDb(evt) };
+    websocketDDb.onmessage = function(evt) { onMessageDDb(evt) };
+    websocketDDb.onerror = function(evt) { onErrorDDb(evt) };*/
+
+    // websocketTwilio = new WebSocket(wsUri);
+    // websocketTwilio.onopen = function(evt) { onOpenTwilio(evt) };
+    // websocketTwilio.onclose = function(evt) { onCloseTwilio(evt) };
+    // websocketTwilio.onmessage = function(evt) { onMessageTwilio(evt) };
+    // websocketTwilio.onerror = function(evt) { onErrorTwilio(evt) };
 }   
+
+// function onOpenTwilio(evt)
+// {
+//     //alert("CONNECTED");
+// }
+// function onCloseTwilio(evt)
+// {
+//     //alert("Disconnected");
+// }
+// function onErrorTwilio(evt)
+// {
+//     //alert('Websocket Error:' + evt.data);
+// }
+
+// function onMessageTwilio(evt)
+// {
+
+// }
 
 function onOpenMQTT(evt)
 {
@@ -341,10 +376,9 @@ var min_powerFactorTacuariPhase2 = null;
 var max_activePowerTacuariPhase3 = 0;
 var min_powerFactorTacuariPhase3 = null;
 
-var contTacuari = 0;
-var contIrigoyen = 0;
-var acumTacuari = 0;
-var acumIrigoyen = 0;
+var cont = 0;
+var acumPiso19 = 0;
+var acumPiso20 = 0;
 
 function onMessageMQTT(evt)
 {
@@ -354,7 +388,7 @@ function onMessageMQTT(evt)
     switch (msg.topic)
     {
         case "fromMeters":
-
+            if (!initialized){
             switch (data.event)
             {
                 case "Totals":
@@ -366,38 +400,31 @@ function onMessageMQTT(evt)
                     activeEnergyTotals_value[data.id] = data.acten*1;
                     activeEnergyRtDayTotals_value[data.id] = data.actenrtday*1;
                     activePowerPkTotals_value[data.id] = data.actpwrpk*1;
-
-
+                    /*
+                    if (data.id == irigoyen)
+                        activeEnergyTotals_value[data.id] -= initialData.Irigoyen.Totals;
+                    else
+                        activeEnergyTotals_value[data.id] -= initialData.Tacuari.Totals;*/
                     
                 //C = 471,24 + 170,82 + 1,19*max(actpwr[kW]) + 0,452*acten[kWh]
                 //: Ctotal = C*(1,33383+1,5*(0,85-min(pwrfc)))    
                     var activePowerSumTotals = activePowerTotals_value[irigoyen] + activePowerTotals_value[tacuari];
                     var powerFactorSumTotals  = powerFactorTotals_value[irigoyen] + powerFactorTotals_value[tacuari];
-                    var activeEnergySumTotals  = activeEnergyTotals_value[irigoyen] + activeEnergyTotals_value[tacuari];
 
-                    if (activePowerPkTotals_value[irigoyen] >= activePowerPkTotals_value[tacuari])
-                        max_activePowerTotals = activePowerPkTotals_value[irigoyen];
-                    else{
-                        max_activePowerTotals = activePowerPkTotals_value[tacuari]
-                    }
                     
-                    if (min_powerFactorTotals == null)
-                        min_powerFactorTotals = powerFactorSumTotals;   
-                    else if (powerFactorSumTotals < min_powerFactorTotals)
-                        min_powerFactorTotals = powerFactorSumTotals ;
-                        
-                    
-                    var costTotals = 471.24 + 170.82 * 25 + (3.28 * (max_activePowerTotals)) + (0.731 * activeEnergySumTotals / 1000);
-                    costTotals = costTotals.toFixed(2);
-                    document.getElementById('idCostTotals').innerHTML = '$ ' + costTotals;
-
-                    var costTotalsIrigoyen = 471.24 / 2 + 170.82  * 12.5 + (3.28 * (activePowerPkTotals_value[irigoyen])) + (3.6 * activeEnergyTotals_value[irigoyen] / 1000000) + 0.731 * activeEnergyTotals_value[irigoyen] / 1000;
+                    var costTotalsIrigoyen = 471.24 / 2 + 170.82  * 12.5 + (3.28 * (activePowerPkTotals_value[irigoyen])) + (3.6 * activeEnergyTotals_value[irigoyen] / 1000000) + 0.731 * activeEnergyTotals_value[irigoyen] / 1000 + 256.23 * (activePowerPkTotals_value[irigoyen]  - 12.5);
+                    costTotalsIrigoyen = costTotalsIrigoyen * 1.36383;
                     costTotalsIrigoyen = costTotalsIrigoyen.toFixed(2);
                     document.getElementById('idCostIrigoyenTotals').innerHTML = '$ ' + costTotalsIrigoyen;
-
-                    var costTotalsTacuari = 471.24  / 2 + 170.82 * 12.5 + (3.28 * (activePowerPkTotals_value[tacuari])) + (3.6 * activeEnergyTotals_value[tacuari] / 1000000) + 0.731 * activeEnergyTotals_value[tacuari] / 1000;;
+                    
+                    var costTotalsTacuari = 471.24  / 2 + 170.82 * 12.5 + (3.28 * (activePowerPkTotals_value[tacuari])) + (3.6 * activeEnergyTotals_value[tacuari] / 1000000) + 0.731 * activeEnergyTotals_value[tacuari] / 1000 + 256.23 * (activePowerPkTotals_value[tacuari] - 12.5);
+                    costTotalsTacuari = costTotalsTacuari * 1.36383;
                     costTotalsTacuari = costTotalsTacuari.toFixed(2);
                     document.getElementById('idCostTacuariTotals').innerHTML = '$ ' + costTotalsTacuari;
+
+                    var costTotals = parseFloat(costTotalsTacuari) + parseFloat(costTotalsIrigoyen);
+                    costTotals = costTotals.toFixed(2);
+                    document.getElementById('idCostTotals').innerHTML = '$ ' + costTotals;
 
                     showTotals();
                     break;
@@ -409,37 +436,22 @@ function onMessageMQTT(evt)
                     powerFactorPhase1_value[data.id] = data.pwrfc*1;
                     activeEnergyPhase1_value[data.id] = data.acten*1;
                     thdPhase1_value[data.id] = data.thdvln*1;
-
+                    /*
+                    if (data.id == irigoyen)
+                        activeEnergyPhase1_value[data.id] -= initialData.Irigoyen.Phase1;
+                    else
+                        activeEnergyPhase1_value[data.id] -= initialData.Tacuari.Phase1;*/
                     
-                    
-                //C = 471,24 + 170,82 + 1,19*max(actpwr[kW]) + 0,452*acten[kWh]
-                //: Ctotal = C*(1,33383+1,5*(0,85-min(pwrfc)))    
-
-                    if (activePowerPhase1_value[irigoyen] > max_activePowerIrigoyenPhase1)
-                        max_activePowerIrigoyenPhase1 = activePowerPhase1_value[irigoyen];
-                    
-                    if (min_powerFactorIrigoyenPhase1 == null)
-                        min_powerFactorIrigoyenPhase1 = powerFactorPhase1_value[irigoyen];   
-                    else if (powerFactorPhase1_value[irigoyen] < min_powerFactorIrigoyenPhase1)
-                        min_powerFactorIrigoyenPhase1 = powerFactorPhase1_value[irigoyen];
-                        
-                    
-                    var costPhase1Irigoyen = 471.24 / 6 + 170.82 * 12.5 / 3 + (3.28 * (max_activePowerIrigoyenPhase1)) + (3.6 * activeEnergyPhase1_value[irigoyen]  / 1000000) + 0.731 * activeEnergyTotals_value[irigoyen] / 1000;
+                    var costPhase1Irigoyen = 471.24 / 6 + 170.82 * 12.5 / 3 + (3.28 * (activePowerPkTotals_value[irigoyen] / 3)) + (3.6 * activeEnergyPhase1_value[irigoyen]  / 1000000) + 0.731 * activeEnergyPhase1_value[irigoyen] / 1000 + 256.23 * (activePowerPkTotals_value[irigoyen] / 3  - 25/6);
+                    costPhase1Irigoyen = costPhase1Irigoyen * 1.36383;
                     costPhase1Irigoyen = costPhase1Irigoyen.toFixed(2);
                     document.getElementById('idCostIrigoyenPhase1').innerHTML = '$ ' + costPhase1Irigoyen;
-
-                    if (activePowerPhase1_value[tacuari] > max_activePowerTacuariPhase1)
-                        max_activePowerTacuariPhase1 = activePowerPhase1_value[tacuari];
-                    
-                    if (min_powerFactorTacuariPhase1 == null)
-                        min_powerFactorTacuariPhase1 = powerFactorPhase1_value[irigoyen];   
-                    else if (powerFactorPhase1_value[irigoyen] < min_powerFactorTacuariPhase1)
-                        min_powerFactorTacuariPhase1 = powerFactorPhase1_value[irigoyen];
-                        
-                    
-                    var costPhase1Tacuari = 471.24 / 6 + 170.82 * 12.5 / 3 + (3.28 * (max_activePowerTacuariPhase1)) + (3.6 *activeEnergyPhase1_value[tacuari]  / 1000000) + 0.731 * activeEnergyTotals_value[tacuari] / 1000;
+                
+                    var costPhase1Tacuari  = 471.24 / 6 + 170.82 * 12.5 / 3 + (3.28 * (activePowerPkTotals_value[tacuari] / 3)) + (3.6 *activeEnergyPhase1_value[tacuari]  / 1000000) + 0.731 * activeEnergyPhase1_value[tacuari] / 1000 + 256.23 * (activePowerPkTotals_value[tacuari] / 3  - 25/6);
+                    costPhase1Tacuari = costPhase1Tacuari * 1.36383;
                     costPhase1Tacuari = costPhase1Tacuari.toFixed(2);
                     document.getElementById('idCostTacuariPhase1').innerHTML = '$ ' + costPhase1Tacuari;
+                
                     // showPhase1();
                     break;
 
@@ -450,36 +462,22 @@ function onMessageMQTT(evt)
                     powerFactorPhase2_value[data.id] = data.pwrfc*1;
                     activeEnergyPhase2_value[data.id] = data.acten*1;
                     thdPhase2_value[data.id] = data.thdvln*1;
-
+                    /*
+                    if (data.id == irigoyen)
+                        activeEnergyPhase2_value[data.id] -= initialData.Irigoyen.Phase2;
+                    else
+                        activeEnergyPhase2_value[data.id] -= initialData.Tacuari.Phase2;*/
                     
-                    
-                //C = 471,24 + 170,82 + 1,19*max(actpwr[kW]) + 0,452*acten[kWh]
-                //: Ctotal = C*(1,33383+1,5*(0,85-min(pwrfc)))    
-                     if (activePowerPhase2_value[irigoyen] > max_activePowerIrigoyenPhase2)
-                        max_activePowerIrigoyenPhase2 = activePowerPhase2_value[irigoyen];
-                    
-                    if (min_powerFactorIrigoyenPhase2 == null)
-                        min_powerFactorIrigoyenPhase2 = powerFactorPhase2_value[irigoyen];   
-                    else if (powerFactorPhase2_value[irigoyen] < min_powerFactorIrigoyenPhase2)
-                        min_powerFactorIrigoyenPhase2 = powerFactorPhase2_value[irigoyen];
-                        
-                    
-                    var costPhase2Irigoyen = 471.24 / 6 + 170.82 * 12.5 / 3 + (3.28 * (max_activePowerIrigoyenPhase2)) + (3.6 * activeEnergyPhase2_value[irigoyen]  / 1000000) + 0.731 * activeEnergyTotals_value[irigoyen] / 1000;
+                    var costPhase2Irigoyen = 471.24 / 6 + 170.82 * 12.5 / 3 + (3.28 * (activePowerPkTotals_value[irigoyen] / 3)) + (3.6 * activeEnergyPhase2_value[irigoyen]  / 1000000) + 0.731 * activeEnergyPhase2_value[irigoyen] / 1000 + 256.23 * (activePowerPkTotals_value[irigoyen] / 3  - 25/6);
+                    costPhase2Irigoyen = costPhase2Irigoyen * 1.36383;
                     costPhase2Irigoyen = costPhase2Irigoyen.toFixed(2);
                     document.getElementById('idCostIrigoyenPhase2').innerHTML = '$ ' + costPhase2Irigoyen;
-
-                    if (activePowerPhase2_value[tacuari] > max_activePowerTacuariPhase2)
-                        max_activePowerTacuariPhase2 = activePowerPhase2_value[tacuari];
-                    
-                    if (min_powerFactorTacuariPhase2 == null)
-                        min_powerFactorTacuariPhase2 = powerFactorPhase2_value[irigoyen];   
-                    else if (powerFactorPhase2_value[irigoyen] < min_powerFactorTacuariPhase2)
-                        min_powerFactorTacuariPhase2 = powerFactorPhase2_value[irigoyen];
                         
-                    
-                    var costPhase2Tacuari = 471.24 / 6 + 170.82 * 12.5 / 3 + (3.28 * (max_activePowerTacuariPhase2)) + (3.6 * activeEnergyPhase2_value[tacuari]  / 1000000) + 0.731 * activeEnergyTotals_value[tacuari] / 1000;
+                    var costPhase2Tacuari = 471.24 / 6 + 170.82 * 12.5 / 3 + (3.28 * (activePowerPkTotals_value[tacuari] / 3)) + (3.6 * activeEnergyPhase2_value[tacuari]  / 1000000) + 0.731 * activeEnergyPhase2_value[tacuari] / 1000 + 256.23 * (activePowerPkTotals_value[tacuari] / 3  - 25/6);
+                    costPhase2Tacuari = costPhase2Tacuari * 1.36383;
                     costPhase2Tacuari = costPhase2Tacuari.toFixed(2);
                     document.getElementById('idCostTacuariPhase2').innerHTML = '$ ' + costPhase2Tacuari;
+                    
                     // showPhase2();
                     break;
 
@@ -490,72 +488,87 @@ function onMessageMQTT(evt)
                     powerFactorPhase3_value[data.id] = data.pwrfc*1;
                     activeEnergyPhase3_value[data.id] = data.acten*1;
                     thdPhase3_value[data.id] = data.thdvln*1;
+                    /*
+                    if (data.id == irigoyen)
+                        activeEnergyPhase3_value[data.id] -= initialData.Irigoyen.Phase3;
+                    else
+                        activeEnergyPhase3_value[data.id] -= initialData.Tacuari.Phase3;*/
 
-                    
-                    
-                //C = 471,24 + 170,82 + 1,19*max(actpwr[kW]) + 0,452*acten[kWh]
-                //: Ctotal = C*(1,33383+1,5*(0,85-min(pwrfc)))    
-                     if (activePowerPhase3_value[irigoyen] > max_activePowerIrigoyenPhase3)
-                        max_activePowerIrigoyenPhase3 = activePowerPhase3_value[irigoyen];
-                    
-                    if (min_powerFactorIrigoyenPhase3 == null)
-                        min_powerFactorIrigoyenPhase3 = powerFactorPhase3_value[irigoyen];   
-                    else if (powerFactorPhase3_value[irigoyen] < min_powerFactorIrigoyenPhase3)
-                        min_powerFactorIrigoyenPhase3 = powerFactorPhase3_value[irigoyen];
-                        
-                    
-                    var costPhase3Irigoyen = 471.24 / 6 + 170.82 * 12.5 / 3 + (3.28 * (max_activePowerIrigoyenPhase3)) + (3.6 * activeEnergyPhase3_value[irigoyen]  / 1000000) + 0.731 * activeEnergyTotals_value[irigoyen] / 1000;
+                    var costPhase3Irigoyen =  471.24 / 6 + 170.82 * 12.5 / 3 + (3.28 * (activePowerPkTotals_value[irigoyen] / 3)) + (3.6 * activeEnergyPhase3_value[irigoyen]  / 1000000) + 0.731 * activeEnergyPhase3_value[irigoyen] / 1000 + 256.23 * (activePowerPkTotals_value[irigoyen] / 3  - 25/6);
+                    costPhase3Irigoyen = costPhase3Irigoyen * 1.36383;
                     costPhase3Irigoyen = costPhase3Irigoyen.toFixed(2);
                     document.getElementById('idCostIrigoyenPhase3').innerHTML = '$ ' + costPhase3Irigoyen;
 
-                    if (activePowerPhase3_value[tacuari] > max_activePowerTacuariPhase3)
-                        max_activePowerTacuariPhase3 = activePowerPhase3_value[tacuari];
-                    
-                    if (min_powerFactorTacuariPhase3 == null)
-                        min_powerFactorTacuariPhase3 = powerFactorPhase3_value[irigoyen];   
-                    else if (powerFactorPhase3_value[irigoyen] < min_powerFactorTacuariPhase3)
-                        min_powerFactorTacuariPhase3 = powerFactorPhase3_value[irigoyen];
-                        
-                    
-                    var costPhase3Tacuari = 471.24 / 6 + 170.82 * 12.5 / 3 + (3.28 * (max_activePowerTacuariPhase3)) + (3.6 * activeEnergyPhase3_value[tacuari]  / 1000000) + 0.731 * activeEnergyTotals_value[tacuari] / 1000;
+                    var costPhase3Tacuari = 471.24 / 6 + 170.82 * 12.5 / 3 + (3.28 * (activePowerPkTotals_value[tacuari] / 3)) + (3.6 * activeEnergyPhase3_value[tacuari]  / 1000000) + 0.731 * activeEnergyPhase3_value[tacuari] / 1000 + 256.23 * (activePowerPkTotals_value[tacuari] / 3  - 25/6);
+                    costPhase3Tacuari = costPhase3Tacuari * 1.36383;
                     costPhase3Tacuari = costPhase3Tacuari.toFixed(2);
                     document.getElementById('idCostTacuariPhase3').innerHTML = '$ ' + costPhase3Tacuari;
+                    
                     // showPhase3();
                     break;
             }
             break;
+            }
         case "fromTemperature":
             tempMeterTotals_value[data.id] = data.metertemp*1;
-            tempPhotonTotals_value[data.id] = data.sensortemp*1;
+            showTempMeters();
+            break;
 
-            if(contTacuari == 5){
-                var promedioTempTacuari = acumTacuari/5;
-                contTacuari=0;
-                acumTacuari=0;
-                if (promedioTempTacuari > 25){
-                    console.log("La temperatura de Tacuari superó los 25 grados");
-                }
-            }
+        case "fromSensor":
+            tempSensor19Totals_value[data.id] = data.sensortemp19*1;
+            tempSensor20Totals_value[data.id] = data.sensortemp20*1;
+            showTempSensors();            
 
-            if(contIrigoyen == 5){
-                var promedioTempIrigoyen = acumIrigoyen/5;
-                contIrigoyen=0;
-                acumIrigoyen=0;
-                if (promedioTempIrigoyen > 25){
-                    console.log("La temperatura de Irigoyen superó los 25 grados");
-                }
-            }
+            // if(cont == 5){
+            //     var promedioTemp19 = acumPiso19/5;
+            //     var piso19 = false, piso20 = false;
+            //     if (promedioTemp19 > 25){
+            //         console.log("La temperatura del piso 19 superó los 25 grados");
+            //         piso19 = true;
+            //     }
+
+            //     var promedioTemp20 = acumPiso20/5;
+            //     if (promedioTemp20 > 25){
+            //         console.log("La temperatura del piso 20 superó los 25 grados");
+            //         piso20 = true;
+            //     }
+
+            //     if (piso19 && piso20){
+            //         console.log("Grabar audio")
+            //     }
+            //     else if (piso19 && !piso20){
+            //         websocketTwilio.send(JSON.stringify({
+            //         cmd: "call",
+            //         password:"Cocos",
+            //         notificar:"+5491150170327",
+            //         responsable:"+5491150170364",
+            //         ruta: "piso19"
+            //         }));
+            //     }
+            //     else if (!piso19 && piso20){
+            //         websocketTwilio.send(JSON.stringify({
+            //         cmd: "call",
+            //         password:"Cocos",
+            //         notificar:"+5491150170327",
+            //         responsable:"+5491150170364",
+            //         ruta: "piso20"
+            //         }));
+            //     }
+
+            //     cont=0;
+            //     acumPiso19=0;
+            //     acumPiso20=0;
+            // }
 
 
-            if(data.id == irigoyen){
-                acumIrigoyen += tempMeterTotals_value[data.id];
-                contIrigoyen++;
-            }
-            else{
-                acumTacuari += tempMeterTotals_value[data.id];
-                contTacuari++;
-            }
             
+            //     acumPiso19 += tempSensor19Totals_value[data.id];
+            //     acumPiso20 += tempSensor20Totals_value[data.id];
+
+            //     cont++
+            
+            
+
             break;
                 
     }
@@ -563,81 +576,107 @@ function onMessageMQTT(evt)
     
 }
 
-// function onOpenDDb(evt)
-// {
-//     //alert("CONNECTED");
-// }
-// function onCloseDDb(evt)
-// {
-//     //alert("Disconnected");
-// }
-// function onErrorDDb(evt)
-// {
-//     //alert('Websocket Error:' + evt.data);
-// }
+/*function onOpenDDb(evt)
+{
+     var x = new Date();
+    var aDate = (new Date(x.getFullYear(), x.getMonth(), x.getDate(), 0, 0, 0, 0)).toISOString();
+    var anotherDate = (new Date(x.getFullYear(), x.getMonth(), x.getDate(), 23, 59, 59, 999)).toISOString();
+    websocketDDb.send(JSON.stringify({dateFrom: aDate, dateTo: anotherDate, coreId:"", phase:"", query:"initialData"}));
+    //alert("CONNECTED");
+}
+function onCloseDDb(evt)
+{
+    //alert("Disconnected");
+}
+function onErrorDDb(evt)
+{
+    //alert('Websocket Error:' + evt.data);
+}
 
-// function onMessageDDb(evt)
-// {
-//     console.log(evt.data);
-//     var consulta = JSON.parse(evt.data.toString());
-//     if (consulta.type == "entreFechas")
-//     {
-//         if (Object.keys(consulta.data).length == 0)
-//         {
-//             document.getElementById('datosEntreFechas').innerHTML ="No se encontraron datos";
-//         }
-//         else
-//         {
-//             document.getElementById('datosEntreFechas').innerHTML =`
-//             <ul>
-//                 <li>
-//                 Potencia activa máxima: ` + consulta.data.maxActivePower.toFixed(2) +
-//                 `
-//                 </li>
-//                 <li>
-//                 Potencia reactiva mínima: ` + consulta.data.minReactivePower.toFixed(2) +
-//                 `
-//                 </li>
-//                 <li>
-//                 Potencia aparente máxima: ` + consulta.data.maxApparentPower.toFixed(2) +
-//                 `
-//                 </li>
-//                 <li>
-//                 Factor de potencia mínimo: ` + consulta.data.minPowerFactor.toFixed(2) +
-//                 `
-//                 </li>
-//                 <li>
-//                 Frecuencia promedio: ` + consulta.data.avgFrequency.toFixed(2) +
-//                 `
-//                 </li>
-//                 <li>
-//                 Temperatura externa máxima: ` + consulta.data.maxTempPhoton.toFixed(2) +
-//                 `
-//                 </li>
-//             </ul>
-//             `
-//         }
-//     }
-//     else
-//     {
-//         if (consulta.data == null)
-//         {
-//             document.getElementById('datosConsumoMes').innerHTML ="No se encontraron datos";
-//         }
-//         else
-//         {
-//             document.getElementById('datosConsumoMes').innerHTML =`
-//             <ul>
-//                 <li>
-//                 Active Energy del mes: ` + consulta.data +
-//                 `
-//                 </li>
-//             </ul>
-//             `
-//         }
-//     }
+function onMessageDDb(evt)
+{
+    console.log(evt.data);
+    var consulta = JSON.parse(evt.data.toString());
+    if (consulta.type == "costo"){
+        if (consulta.data == null)
+        {
+            document.getElementById('datosEntreFechas').innerHTML ="No se encontraron datos";
+        }
+        else
+        {
+            document.getElementById('datosEntreFechas').innerHTML =`
+            <ul>
+                <li>
+                El costo es de: $` + consulta.data +
+                `
+                </li>
+            </ul>
+            `
+        }
+    }
+    else if (consulta.type == "entreFechas")
+    {
+        if (Object.keys(consulta.data).length == 0)
+        {
+            document.getElementById('datosEntreFechas').innerHTML ="No se encontraron datos";
 
-// }
+        }
+        else
+        {
+            document.getElementById('datosEntreFechas').innerHTML =`
+            <ul>
+                <li>
+                Potencia activa máxima: ` + consulta.data.maxActivePower.toFixed(2) +
+                `
+                </li>
+                <li>
+                Potencia reactiva mínima: ` + consulta.data.minReactivePower.toFixed(2) +
+                `
+                </li>
+                <li>
+                Potencia aparente máxima: ` + consulta.data.maxApparentPower.toFixed(2) +
+                `
+                </li>
+                <li>
+                Factor de potencia mínimo: ` + consulta.data.minPowerFactor.toFixed(2) +
+                `
+                </li>
+                <li>
+                Frecuencia promedio: ` + consulta.data.avgFrequency.toFixed(2) +
+                `
+                </li>
+                <li>
+                Temperatura externa máxima: ` + consulta.data.maxTempPhoton.toFixed(2) +
+                `
+                </li>
+            </ul>
+            `
+        }
+    }
+    else if (consulta.type == "initialData")
+    {
+        initialData = consulta.data;
+        initialized = true;
+    }
+    // else
+    // {
+    //     if (consulta.data == null)
+    //     {
+    //         document.getElementById('datosConsumoMes').innerHTML ="No se encontraron datos";
+    //     }
+    //     else
+    //     {
+    //         document.getElementById('datosConsumoMes').innerHTML =`
+    //         <ul>
+    //             <li>
+    //             Active Energy del mes: ` + consulta.data +
+    //             `
+    //             </li>
+    //         </ul>
+    //         `
+    //     }
+    // }
+}*/
 
 
 function init()
@@ -653,43 +692,15 @@ function init()
 
     chartFrequencyTotals = new google.visualization.LineChart(document.getElementById('idFrequencyTotals'));
 
-    charttempMeterTotals = new google.visualization.LineChart(document.getElementById('idtempMeterTotals'));
-    chartTempPhotonTotals = new google.visualization.LineChart(document.getElementById('idTempPhotonTotals'));
+    chartTempMeterTotals = new google.visualization.LineChart(document.getElementById('idtempMeterTotals'));
 
-    // //PHASE 1
-    
-    // chartActivePowerPhase1 = new google.visualization.LineChart(document.getElementById('idActivePowerPhase1'));
-    // chartReactivePowerPhase1 = new google.visualization.LineChart(document.getElementById('idReactivePowerPhase1'));
-
-    // chartApparentPowerPhase1 = new google.visualization.LineChart(document.getElementById('idApparentPowerPhase1'));
-    // chartPowerFactorPhase1 = new google.visualization.LineChart(document.getElementById('idPowerFactorPhase1'));
-
-    // chartTHDPhase1 = new google.visualization.LineChart(document.getElementById('idTHDPhase1'));
-
-    // //PHASE 2
-    
-    // chartActivePowerPhase2 = new google.visualization.LineChart(document.getElementById('idActivePowerPhase2'));
-    // chartReactivePowerPhase2 = new google.visualization.LineChart(document.getElementById('idReactivePowerPhase2'));
-
-    // chartApparentPowerPhase2 = new google.visualization.LineChart(document.getElementById('idApparentPowerPhase2'));
-    // chartPowerFactorPhase2 = new google.visualization.LineChart(document.getElementById('idPowerFactorPhase2'));
-
-    // chartTHDPhase2 = new google.visualization.LineChart(document.getElementById('idTHDPhase2'));
-
-
-    // //PHASE 3
-    
-    // chartActivePowerPhase3 = new google.visualization.LineChart(document.getElementById('idActivePowerPhase3'));
-    // chartReactivePowerPhase3 = new google.visualization.LineChart(document.getElementById('idReactivePowerPhase3'));
-
-    // chartApparentPowerPhase3 = new google.visualization.LineChart(document.getElementById('idApparentPowerPhase3'));
-    // chartPowerFactorPhase3 = new google.visualization.LineChart(document.getElementById('idPowerFactorPhase3'));
-
-    // chartTHDPhase3 = new google.visualization.LineChart(document.getElementById('idTHDPhase3'));
-
+    chartTempSensor19Totals = new google.visualization.LineChart(document.getElementById('idTempSensor19Totals'));
+    chartTempSensor20Totals = new google.visualization.LineChart(document.getElementById('idTempSensor20Totals'));
 
     initWebSocket();
     showTotals();
+    showTempMeters();
+    showTempSensors();
     // showPhase1();
     // showPhase2();
     // showPhase3();
@@ -706,8 +717,8 @@ function showTotals()
     var sec = ("0" + t.getSeconds()).slice(-2)
 
 
-    var hm = /*hour + ":" +*/ min + ":" + sec;    
-
+    var hm = /*hour + ":" +*/ min + ":" + sec;   
+   
     document.getElementById('idActiveEnergyTotals').innerHTML = (activeEnergyTotals_value[irigoyen] +  activeEnergyTotals_value[tacuari]) / 1000
     
     if(activePowerTotals_array.length > SHOW)
@@ -744,207 +755,83 @@ function showTotals()
     var data = google.visualization.arrayToDataTable(frequencyTotals_array);
     options.title ="Frequencia";
     chartFrequencyTotals.draw(data, options);     
+
+}
+
+function showTempMeters()
+{
+    var SHOW = 6;
+    var t = new Date();
+    
+    //var hour = ("0" + t.getHours()).slice(-2)
+    var min = ("0" + t.getMinutes()).slice(-2)
+    var sec = ("0" + t.getSeconds()).slice(-2)
+
+
+    var hm = /*hour + ":" +*/ min + ":" + sec;   
     
     if(tempMeterTotals_array.length > SHOW)
         tempMeterTotals_array.splice(1,1);
     tempMeterTotals_array.push([hm,tempMeterTotals_value[irigoyen], tempMeterTotals_value[tacuari]])
     var data = google.visualization.arrayToDataTable(tempMeterTotals_array);
     options.title ="Temperatura Interna";
-    charttempMeterTotals.draw(data, options);        
+    chartTempMeterTotals.draw(data, options);        
     
-    if(tempPhotonTotals_array.length > SHOW)
-        tempPhotonTotals_array.splice(1,1);
-    tempPhotonTotals_array.push([hm,tempPhotonTotals_value[irigoyen], tempPhotonTotals_value[tacuari]])
-    var data = google.visualization.arrayToDataTable(tempPhotonTotals_array);
-    options.title ="Temperatura Externa";
-    chartTempPhotonTotals.draw(data, options);  
+    
 
 }
 
-// function showPhase1()
-// {
-//     var SHOW = 6;
-//     var t = new Date();
+function showTempSensors()
+{
+    var SHOW = 6;
+    var t = new Date();
     
-//     //var hour = ("0" + t.getHours()).slice(-2)
-//     var min = ("0" + t.getMinutes()).slice(-2)
-//     var sec = ("0" + t.getSeconds()).slice(-2)
+    //var hour = ("0" + t.getHours()).slice(-2)
+    var min = ("0" + t.getMinutes()).slice(-2)
+    var sec = ("0" + t.getSeconds()).slice(-2)
 
 
-//     var hm = /*hour + ":" +*/ min + ":" + sec;    
+    var hm = /*hour + ":" +*/ min + ":" + sec;   
+    
+   if(tempSensor19Totals_array.length > SHOW)
+        tempSensor19Totals_array.splice(1,1);
+    tempSensor19Totals_array.push([hm,tempSensor19Totals_value[irigoyen], tempSensor19Totals_value[tacuari]])
+    var data = google.visualization.arrayToDataTable(tempSensor19Totals_array);
+    options.title ="Temperatura Piso 19";
+    chartTempSensor19Totals.draw(data, options);  
 
-//     document.getElementById('idActiveEnergyPhase1').innerHTML = (activeEnergyPhase1_value[irigoyen] +  activeEnergyPhase1_value[tacuari])/1000
-    
-//     if(activePowerPhase1_array.length > SHOW)
-//         activePowerPhase1_array.splice(1,1);
-//     activePowerPhase1_array.push([hm,activePowerPhase1_value[irigoyen], activePowerPhase1_value[tacuari]])
-//     var data = google.visualization.arrayToDataTable(activePowerPhase1_array);
-//     options.title ="Potencia Activa Fase 1";
-//     chartActivePowerPhase1.draw(data, options);        
-    
-//     if(reactivePowerPhase1_array.length > SHOW)
-//         reactivePowerPhase1_array.splice(1,1);
-//     reactivePowerPhase1_array.push([hm,reactivePowerPhase1_value[irigoyen], reactivePowerPhase1_value[tacuari]])
-//     var data = google.visualization.arrayToDataTable(reactivePowerPhase1_array);
-//     options.title ="Potencia Reactiva Fase 1";
-//     chartReactivePowerPhase1.draw(data, options);        
-    
-//     if(apparentPowerPhase1_array.length > SHOW)
-//         apparentPowerPhase1_array.splice(1,1);
-//     apparentPowerPhase1_array.push([hm,apparentPowerPhase1_value[irigoyen], apparentPowerPhase1_value[tacuari]])
-//     var data = google.visualization.arrayToDataTable(apparentPowerPhase1_array);
-//     options.title ="Potencia Aparente Fase 1";
-//     chartApparentPowerPhase1.draw(data, options);        
-    
-//     if(powerFactorPhase1_array.length > SHOW)
-//         powerFactorPhase1_array.splice(1,1);
-//     powerFactorPhase1_array.push([hm,powerFactorPhase1_value[irigoyen], powerFactorPhase1_value[tacuari]])
-//     var data = google.visualization.arrayToDataTable(powerFactorPhase1_array);
-//     options.title ="Factor de Potencia Fase 1";
-//     chartPowerFactorPhase1.draw(data, options);        
-    
-//     if(thdPhase1_array.length > SHOW)
-//         thdPhase1_array.splice(1,1);
-//     thdPhase1_array.push([hm,thdPhase1_value[irigoyen], thdPhase1_value[tacuari]])
-//     var data = google.visualization.arrayToDataTable(thdPhase1_array);
-//     options.title ="THD Fase 1";
-//     chartTHDPhase1.draw(data, options);        
-    
-// }
+    if(tempSensor20Totals_array.length > SHOW)
+        tempSensor20Totals_array.splice(1,1);
+    tempSensor20Totals_array.push([hm,tempSensor20Totals_value[irigoyen], tempSensor20Totals_value[tacuari]])
+    var data = google.visualization.arrayToDataTable(tempSensor20Totals_array);
+    options.title ="Temperatura Piso 20";
+    chartTempSensor20Totals.draw(data, options); 
 
-// function showPhase2()
-// {
-//     var SHOW = 6;
-//     var t = new Date();
-    
-//     //var hour = ("0" + t.getHours()).slice(-2)
-//     var min = ("0" + t.getMinutes()).slice(-2)
-//     var sec = ("0" + t.getSeconds()).slice(-2)
+}
 
-
-//     var hm = /*hour + ":" +*/ min + ":" + sec;    
-
-//     document.getElementById('idActiveEnergyPhase2').innerHTML = (activeEnergyPhase2_value[irigoyen] +  activeEnergyPhase2_value[tacuari])/1000
-    
-//     if(activePowerPhase2_array.length > SHOW)
-//         activePowerPhase2_array.splice(1,1);
-//     activePowerPhase2_array.push([hm,activePowerPhase2_value[irigoyen], activePowerPhase2_value[tacuari]])
-//     var data = google.visualization.arrayToDataTable(activePowerPhase2_array);
-//     options.title ="Potencia Activa Fase 2";
-//     chartActivePowerPhase2.draw(data, options);        
-    
-//     if(reactivePowerPhase2_array.length > SHOW)
-//         reactivePowerPhase2_array.splice(1,1);
-//     reactivePowerPhase2_array.push([hm,reactivePowerPhase2_value[irigoyen], reactivePowerPhase2_value[tacuari]])
-//     var data = google.visualization.arrayToDataTable(reactivePowerPhase2_array);
-//     options.title ="Potencia Reactiva Fase 2";
-//     chartReactivePowerPhase2.draw(data, options);        
-    
-//     if(apparentPowerPhase2_array.length > SHOW)
-//         apparentPowerPhase2_array.splice(1,1);
-//     apparentPowerPhase2_array.push([hm,apparentPowerPhase2_value[irigoyen], apparentPowerPhase2_value[tacuari]])
-//     var data = google.visualization.arrayToDataTable(apparentPowerPhase2_array);
-//     options.title ="Potencia Aparente Fase 2";
-//     chartApparentPowerPhase2.draw(data, options);        
-    
-//     if(powerFactorPhase2_array.length > SHOW)
-//         powerFactorPhase2_array.splice(1,1);
-//     powerFactorPhase2_array.push([hm,powerFactorPhase2_value[irigoyen], powerFactorPhase2_value[tacuari]])
-//     var data = google.visualization.arrayToDataTable(powerFactorPhase2_array);
-//     options.title ="Factor de Potencia Fase 2";
-//     chartPowerFactorPhase2.draw(data, options);        
-    
-//     if(thdPhase2_array.length > SHOW)
-//         thdPhase2_array.splice(1,1);
-//     thdPhase2_array.push([hm,thdPhase2_value[irigoyen], thdPhase2_value[tacuari]])
-//     var data = google.visualization.arrayToDataTable(thdPhase2_array);
-//     options.title ="THD Fase 2";
-//     chartTHDPhase2.draw(data, options);   
-    
-// }
-
-// function showPhase3()
-// {
-//     var SHOW = 6;
-//     var t = new Date();
-    
-//     //var hour = ("0" + t.getHours()).slice(-2)
-//     var min = ("0" + t.getMinutes()).slice(-2)
-//     var sec = ("0" + t.getSeconds()).slice(-2)
-
-
-//     var hm = /*hour + ":" +*/ min + ":" + sec;    
-
-//     document.getElementById('idActiveEnergyPhase3').innerHTML = (activeEnergyPhase3_value[irigoyen] +  activeEnergyPhase3_value[tacuari])/1000
-    
-//     if(activePowerPhase3_array.length > SHOW)
-//         activePowerPhase3_array.splice(1,1);
-//     activePowerPhase3_array.push([hm,activePowerPhase3_value[irigoyen], activePowerPhase3_value[tacuari]])
-//     var data = google.visualization.arrayToDataTable(activePowerPhase3_array);
-//     options.title ="Potencia Activa Fase 3";
-//     chartActivePowerPhase3.draw(data, options);        
-    
-//     if(reactivePowerPhase3_array.length > SHOW)
-//         reactivePowerPhase3_array.splice(1,1);
-//     reactivePowerPhase3_array.push([hm,reactivePowerPhase3_value[irigoyen], reactivePowerPhase3_value[tacuari]])
-//     var data = google.visualization.arrayToDataTable(reactivePowerPhase3_array);
-//     options.title ="Potencia Reactiva Fase 3";
-//     chartReactivePowerPhase3.draw(data, options);        
-    
-//     if(apparentPowerPhase3_array.length > SHOW)
-//         apparentPowerPhase3_array.splice(1,1);
-//     apparentPowerPhase3_array.push([hm,apparentPowerPhase3_value[irigoyen], apparentPowerPhase3_value[tacuari]])
-//     var data = google.visualization.arrayToDataTable(apparentPowerPhase3_array);
-//     options.title ="Potencia Aparente Fase 3";
-//     chartApparentPowerPhase3.draw(data, options);        
-    
-//     if(powerFactorPhase3_array.length > SHOW)
-//         powerFactorPhase3_array.splice(1,1);
-//     powerFactorPhase3_array.push([hm,powerFactorPhase3_value[irigoyen], powerFactorPhase3_value[tacuari]])
-//     var data = google.visualization.arrayToDataTable(powerFactorPhase3_array);
-//     options.title ="Factor de Potencia Fase 3";
-//     chartPowerFactorPhase3.draw(data, options);        
-    
-//     if(thdPhase3_array.length > SHOW)
-//         thdPhase3_array.splice(1,1);
-//     thdPhase3_array.push([hm,thdPhase3_value[irigoyen], thdPhase3_value[tacuari]])
-//     var data = google.visualization.arrayToDataTable(thdPhase3_array);
-//     options.title ="THD Fase 3";
-//     chartTHDPhase3.draw(data, options);   
-    
-// }
 //============================================================================================    
 
-// $(document).ready(inicializar); 
+$(document).ready(inicializar); 
 
-// function inicializar(){
-//     $('.input-daterange input').each(function() {
-//         $(this).datepicker({language: 'es'});
-//         $(this).datepicker('clearDates');
-//     });
+function inicializar(){
+    $('.input-daterange input').each(function() {
+        $(this).datepicker({language: 'es'});
+        $(this).datepicker('clearDates');
+    });
 
-//     $('#monthPicker').datepicker({language:'es',minViewMode: 1, format:'03/mm/yyyy'});
-
-//     $('#entreFechas').click(function(){
-//         var data = new Object()
-//         data.dateFrom = $('#dateFrom').datepicker("getDate").toISOString();
-//         data.dateTo =  (new Date($('#dateTo').datepicker("getDate").setHours(23,59,59,999))).toISOString();
-//         data.id = $("#radio-group input[type='radio']:checked").val();
-//         data.query = "entreFechas";
-//         data.phase = "Totals";
-//         websocketDDb.send(JSON.stringify(data));
-//     });
-
-//     $('#consumoMes').click(function(){
-//         var data = new Object()
-//         data.dateFrom = $('#monthPicker').datepicker("getDate").toISOString();
-//         data.dateTo =  new Date (new Date($('#monthPicker').datepicker("getDate").setMonth($('#monthPicker').datepicker("getDate").getMonth(),32)).setHours(23,59,59,999)).toISOString();
-//         data.id = $("#radio-group input[type='radio']:checked").val();
-//         data.query = "consumoMes";
-//         data.phase = "Totals";
-//         websocketDDb.send(JSON.stringify(data));
-//     });
-// }
+    $('#entreFechas').click(function(){
+        if ($('#dateFrom').datepicker("getDate") != null && $('#dateTo').datepicker("getDate") != null)
+        {
+            var data = new Object()
+            data.dateFrom = $('#dateFrom').datepicker("getDate").toISOString();
+            data.dateTo =  (new Date($('#dateTo').datepicker("getDate").setHours(23,59,59,999))).toISOString();
+            data.coreId = $("#radio-group input[type='radio']:checked").val();
+            data.phase = $("#radio-group-phases input[type='radio']:checked").val();
+            data.query = "costo";
+            websocketDDb.send(JSON.stringify(data));
+        }
+    });
+}
 
 </script>
         
@@ -1013,19 +900,19 @@ function showTotals()
           <div class="col-md-4"><img src="../img/consumo.png" class="img-responsive centerimage"></div>
           <div class="col-md-8"><p class="intern_section_parag"<ul>
 								<li class="listStyle">
-									Medición de de todos los factores que inciden en el consumo. Industria y Retail
+									Medición de de todos los factores que inciden en el consumo. Industria y Retail.
 								</li>
 								<li class="listStyle">
-									Lectura por interfaz RS-485 de los medidores de consumo Schneider
+									Lectura por interfaz RS-485 de los medidores de consumo Schneider.
 								</li>
 								<li class="listStyle">
-									Obtención de los datos a través de un controller Photon de Particle
+									Obtención de los datos a través de un controller Photon de Particle.
 								</li>
 								<li class="listStyle">
-									Publicación de los datos a la nube de Particle
+									Publicación de los datos a la nube de Particle.
 								</li>
 								<li class="listStyle">
-									Republicación de los datos a la nube Azure
+									Republicación de los datos a la nube Azure.
 								</li>
 								<li class="listStyle">
 									Valores medidos:
@@ -1051,7 +938,7 @@ Temperatura externa<br>
          <div class="row bottom50">
         <div class="col-md-12">
           <h4 class="topbottom50 blackfont">Arquitectura</h4>
-            <img src="../img/azure_graph.svg" class="img-responsive">   
+            <img src="../img/azure_graph.svg" style="margin-left:15%" width="60%" height="60%">   
         </div>
       </div>
       </section>
@@ -1070,10 +957,14 @@ Temperatura externa<br>
       <div id="demo_content" class="demo_content_style2 topbottom50">
       <div class="container">
 <div class="row">
-<h5 class="bottom50"> Demostración</h5>
-<!-- <div style="margin-top:50px;font-size:14pt;">
+<h5 class="bottom20"> Demostración</h5>
+            <div style="font-size:16pt;margin-bottom:10px;margin-left:-20px">Acceder a reportes en <a href="./powerbi-dashboard.html" target="_blank">PowerBI</a></div>
+            <div style="font-size:16pt;margin-bottom:10px;margin-left:-20px">Ver Dashboard en <a href="https://app.powerbi.com/groups/me/dashboards/ee89345d-4a39-45e6-ab47-feb57ca12241" target="_blank">PowerBI</a></div>
+            <div style="font-size:16pt;margin-bottom:10px;margin-left:-20px">Ir a demo de <a href="./alarm.html" target="_blank">Twilio (Alarmas)</a></div>
+            <div style="font-size:16pt;margin-bottom:40px;margin-left:-20px">Ir a demo de <a href="./crisis.html" target="_blank">Twilio (Comité de crisis)</a></div>
+             <div style="font-size:14pt;">
                 Ver valores entre fechas
-                <div style="margin-top:10px;" class="col-md-3 input-group input-daterange">
+                <div style="margin-top:10px; margin-left:37%" class="col-md-3 input-group input-daterange">
                     <input type="text" id="dateFrom" class="form-control" readonly>
                     <div class="input-group-addon">a</div>
                     <input type="text" id="dateTo" class="form-control" readonly>
@@ -1084,46 +975,24 @@ Temperatura externa<br>
                     </div>
                 </div> 
                 <div id="radio-group">
+                    <label class="radio-inline" style="font-size:13pt"><input type="radio" checked="true" name="optradio" value="">Todos</label>
                     <label class="radio-inline" style="font-size:13pt"><input type="radio" name="optradio" value="2e0028000a47353138383138">Irigoyen</label>
                     <label class="radio-inline" style="font-size:13pt"><input type="radio" name="optradio" value="310036001047353138383138">Tacuari</label>
-                    <label class="radio-inline" style="font-size:13pt"><input type="radio" checked="true" value="" name="optradio">Todos</label>
+                </div>
+                <div id="radio-group-phases">
+                    <label class="radio-inline" style="font-size:13pt"><input type="radio" checked="true" name="phases" value="Totals">Total</label>
+                    <label class="radio-inline" style="font-size:13pt"><input type="radio" name="phases" value="One">Fase 1</label>
+                    <label class="radio-inline" style="font-size:13pt"><input type="radio" name="phases" value="Two" >Fase 2</label>
+                    <label class="radio-inline" style="font-size:13pt"><input type="radio" name="phases" value="Three">Fase 3</label>
                 </div>
                 <div  style="margin-top:20px;font-size:10pt;" id="datosEntreFechas">
                 </div>
             </div>
-            <div style="margin-top:20px;font-size:14pt;">
-                Elija mes
-                <div style="margin-top:10px" class="col-md-3 input-group">
-                    <input type="text" id="monthPicker" class="form-control" readonly>
-                    <div class="input-group-btn">
-                      <button id="consumoMes" class="btn btn-default form-control" type="submit">
-                        <i class="glyphicon glyphicon-search"></i>
-                      </button>
-                    </div>
-                </div> 
-                <div  style="margin-top:20px;font-size:10pt;" id="datosConsumoMes">
-                </div>
-            </div> -->
-		<!-- 	<div style="font-size:10pt;margin-bottom:10px;">
-                <iframe name="result" style="display:none;"></iframe>
-                <form target="result" action="https://api.particle.io/v1/devices/310036001047353138383138/setinterval?access_token=562810b39525e81f66b0d3d02bccdc5c7691de22" method="POST">
-                    Frequencia de muestreo
-                    <select name="args" class="dropdown">
-                        <option selected="selected" value="5">5 segundos</option>
-                        <option value="10">10 segundos</option>
-                        <option value="15">15 segundos</option>
-                    </select>
-                    <input class="logicalisbutton" type="submit" value="Establecer">
-                </form>			
-            </div>  -->
-            <div style="font-size:16pt;margin-bottom:10px;margin-left:-20px">Acceder a reportes en <a href="./powerbi-dashboard.html" target="_blank">PowerBI</a></div>
-            <div style="font-size:16pt;margin-bottom:10px;margin-left:-20px">Ver Dashboard en <a href="https://app.powerbi.com/groups/me/dashboards/ee89345d-4a39-45e6-ab47-feb57ca12241" target="_blank">PowerBI</a></div>
-            <div style="font-size:16pt;margin-bottom:10px;margin-left:-20px">Ir a demo de <a href="./alarm.html" target="_blank">Twilio</a></div>
             <table class="consumo-table">
 				<!--COMIENZO TOTAL-->
                 <tr>
                     <td>
-                        <div class="energy">Consumo Total en kWh</div>
+                        <div class="energy">Consumo total en kWh</div>
 
                     </td>
                     <td>
@@ -1133,7 +1002,7 @@ Temperatura externa<br>
                 </tr>
                 <tr>
                     <td>
-                        <div class="energy">Consumo Total en Pesos</div>
+                        <div class="energy">Consumo total en pesos</div>
                     </td>
                     <td>
                         <div id="idCostTotals" class="numbers" class="energy"></div>
@@ -1146,7 +1015,7 @@ Temperatura externa<br>
                 </tr> 
                 <tr>
                     <td>
-                        <div class="energysubtext">Consumo Total</div>
+                        <div class="energysubtext">Consumo total</div>
                     </td> 
                     <td>
                         <div id="idCostIrigoyenTotals" class="numberssubtext" class="energy"></div>
@@ -1183,7 +1052,7 @@ Temperatura externa<br>
                 </tr> 
                 <tr>
                     <td>
-                        <div class="energysubtext">Consumo Total</div>
+                        <div class="energysubtext">Consumo total</div>
                     </td>
                     <td>
                         <div id="idCostTacuariTotals" class="numberssubtext" class="energy"></div>
@@ -1239,185 +1108,25 @@ Temperatura externa<br>
                 </tr>
                 <tr>
                     <td>
-                        <div class="cuadro-desc">Temperatura Interna del Tablero Eléctrico</div>
-                        <div id="idtempMeterTotals"  class="cuadro-consumo"></div>
-
-                    </td>
-                    <td>
-                        <div class="cuadro-desc">Temperatura Externa al Tablero Eléctrico</div>
-                        <div id="idTempPhotonTotals"  class="cuadro-consumo"></div>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
                         <div class="cuadro-desc">Proveniente de la señal sinusoidal con la que se alimenta al medidor.</div>
                         <div id="idFrequencyTotals"  class="cuadro-consumo"></div>
-
                     </td>
                     <td>
+                        <div class="cuadro-desc">Temperatura interna del tablero eléctrico.</div>
+                        <div id="idtempMeterTotals"  class="cuadro-consumo"></div>
                     </td>
-                
-                </tr>
-            <!-- FIN TOTAL-->
-            <!--COMIENZO FASE 1-->
-               <!--  <tr>
-                    <td>
-                        <div style="margin-top:30px;" class="energy">Consumo Fase 1 en kWh</div>
-
-                    </td>
-                    <td>
-                        <div style="margin-top:30px;" id="idActiveEnergyPhase1" class="energy"></div>
-                    </td>
-                
                 </tr>
                 <tr>
                     <td>
-                        <div style="margin-top:30px;" class="energy">Consumo Fase 1 en Pesos</div>
+                        <div class="cuadro-desc">Temperatura sensor piso 19.</div>
+                        <div id="idTempSensor19Totals"  class="cuadro-consumo"></div>
                     </td>
                     <td>
-                        <div style="margin-top:30px;" id="idCostPhase1" class="energy"></div>
+                        <div class="cuadro-desc">Temperatura sensor piso 20.</div>
+                        <div id="idTempSensor20Totals"  class="cuadro-consumo"></div>
                     </td>
                 
                 </tr>
-                <tr>
-                    <td>
-                        <div class="cuadro-desc">Se aprovecha como potencia útil y es debida a los dispositivos resistivos. Valores positivos indican consumo y valores negativos indican entrega de energía a la red eléctrica.</div>
-                        <div id="idActivePowerPhase1" class="cuadro-consumo"></div>
-
-                    </td>
-                    <td>
-                        <div class="cuadro-desc">Requerida por bobinas y condensadores para generar campos magnéticos o eléctricos, fluctúa por la red entre el generador y los receptores y no se transforma en trabajo efectivo. Valores positivos evidencian cargas inductivas y valores negativos evidencian cargas capacitivas.</div>
-                        <div id="idReactivePowerPhase1"  class="cuadro-consumo"></div>
-                    </td>
-                
-                </tr>
-                <tr>
-                    <td>
-                        <div class="cuadro-desc">Es la totalidad de la potencia consumida por la carga, la suma vectorial de las potencias activa y reactiva.</div>
-                        <div id="idApparentPowerPhase1"  class="cuadro-consumo"></div>
-
-                    </td>
-                    <td>
-                        <div class="cuadro-desc">Coseno del ángulo entre potencia activa y reactiva.</div>
-                        <div id="idPowerFactorPhase1"  class="cuadro-consumo"></div>
-                    </td>
-                
-                </tr>
-                <tr>
-                    <td>
-                        <div class="cuadro-desc">Distorsión armónica total de la primera fase, el porcentaje indica qué parte de la potencia total de la señal se distribuye en armónicos de otras frecuencias por fuera de los 50Hz.</div>
-                        <div id="idTHDPhase1"  class="cuadro-consumo"></div>
-                    </td>
-
-                    <td>
-                    </td>
-                
-                </tr> -->
-            <!-- FIN FASE 1-->
-            <!--COMIENZO FASE 2-->
-                   <!--   <td>
-                        <div style="margin-top:30px;" class="energy">Consumo Fase 2 en kWh</div>
-
-                    </td>
-                    <td>
-                        <div style="margin-top:30px;" id="idActiveEnergyPhase2" class="energy"></div>
-                    </td>
-                
-                </tr>
-                <tr>
-                    <td>
-                        <div style="margin-top:30px;" class="energy">Consumo Fase 2 en Pesos</div>
-                    </td>
-                    <td>
-                        <div style="margin-top:30px;" id="idCostPhase2" class="energy"></div>
-                    </td>
-                
-                </tr>
-                <tr>
-                    <td>
-                        <div class="cuadro-desc">Se aprovecha como potencia útil y es debida a los dispositivos resistivos. Valores positivos indican consumo y valores negativos indican entrega de energía a la red eléctrica.</div>
-                        <div id="idActivePowerPhase2" class="cuadro-consumo"></div>
-
-                    </td>
-                    <td>
-                        <div class="cuadro-desc">Requerida por bobinas y condensadores para generar campos magnéticos o eléctricos, fluctúa por la red entre el generador y los receptores y no se transforma en trabajo efectivo. Valores positivos evidencian cargas inductivas y valores negativos evidencian cargas capacitivas.</div>
-                        <div id="idReactivePowerPhase2"  class="cuadro-consumo"></div>
-                    </td>
-                
-                </tr>
-                <tr>
-                    <td>
-                        <div class="cuadro-desc">Es la totalidad de la potencia consumida por la carga, la suma vectorial de las potencias activa y reactiva.</div>
-                        <div id="idApparentPowerPhase2"  class="cuadro-consumo"></div>
-
-                    </td>
-                    <td>
-                        <div class="cuadro-desc">Coseno del ángulo entre potencia activa y reactiva.</div>
-                        <div id="idPowerFactorPhase2"  class="cuadro-consumo"></div>
-                    </td>
-                
-                </tr>
-                <tr>
-                    <td>
-                        <div class="cuadro-desc">Distorsión armónica total de la primera fase, el porcentaje indica qué parte de la potencia total de la señal se distribuye en armónicos de otras frecuencias por fuera de los 50Hz.</div>
-                        <div id="idTHDPhase2"  class="cuadro-consumo"></div>
-                    </td>
-                    <td></td>
-                </tr> -->
-            <!-- FIN FASE 2 -->
-            <!-- COMIENZO FASE 3 -->
-               <!--  <tr>
-                    <td>
-                        <div style="margin-top:30px;" class="energy">Consumo Fase 3 en kWh</div>
-
-                    </td>
-                    <td>
-                        <div style="margin-top:30px;" id="idActiveEnergyPhase3" class="energy"></div>
-                    </td>
-                
-                </tr>
-                <tr>
-                    <td>
-                        <div style="margin-top:30px;" class="energy">Consumo Fase 3 en Pesos</div>
-                    </td>
-                    <td>
-                        <div style="margin-top:30px;" id="idCostPhase3" class="energy"></div>
-                    </td>
-                
-                </tr>
-                <tr>
-                    <td>
-                        <div class="cuadro-desc">Se aprovecha como potencia útil y es debida a los dispositivos resistivos. Valores positivos indican consumo y valores negativos indican entrega de energía a la red eléctrica.</div>
-                        <div id="idActivePowerPhase3" class="cuadro-consumo"></div>
-
-                    </td>
-                    <td>
-                        <div class="cuadro-desc">Requerida por bobinas y condensadores para generar campos magnéticos o eléctricos, fluctúa por la red entre el generador y los receptores y no se transforma en trabajo efectivo. Valores positivos evidencian cargas inductivas y valores negativos evidencian cargas capacitivas.</div>
-                        <div id="idReactivePowerPhase3"  class="cuadro-consumo"></div>
-                    </td>
-                
-                </tr>
-                <tr>
-                    <td>
-                        <div class="cuadro-desc">Es la totalidad de la potencia consumida por la carga, la suma vectorial de las potencias activa y reactiva.</div>
-                        <div id="idApparentPowerPhase3"  class="cuadro-consumo"></div>
-
-                    </td>
-                    <td>
-                        <div class="cuadro-desc">Coseno del ángulo entre potencia activa y reactiva.</div>
-                        <div id="idPowerFactorPhase3"  class="cuadro-consumo"></div>
-                    </td>
-                
-                </tr>
-                <tr>
-                    <td>
-                        <div class="cuadro-desc">Distorsión armónica total de la primera fase, el porcentaje indica qué parte de la potencia total de la señal se distribuye en armónicos de otras frecuencias por fuera de los 50Hz.</div>
-                        <div id="idTHDPhase3"  class="cuadro-consumo"></div>
-                    </td>
-                    <td></td>
-                
-                </tr> --> 
-            <!-- FIN FASE 3-->  
                 <tr>
                     <td colspan=2>Cargo fijo por mes: 471,24 $/mes.</td>
                 </tr>

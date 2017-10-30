@@ -9,9 +9,9 @@
  *
  *  In a Linux box, run
  *  "./diagslave /dev/ttyUSB0 -b 9600 -d 8 -s 1 -p none -m rtu -a 1"
- * 	This is:
- * 		serial port /dev/ttyUSB0 at 9600 baud 8N1
- *		RTU mode and address @1
+ *  This is:
+ *      serial port /dev/ttyUSB0 at 9600 baud 8N1
+ *      RTU mode and address @1
  */
 //SYSTEM_MODE(MANUAL); // no need for cell connection in this fw
 
@@ -24,7 +24,7 @@
 #include "SparkDallasTemperature.h"
 
 PRODUCT_ID(3416);
-PRODUCT_VERSION(30);
+PRODUCT_VERSION(39);
 
 /**
  * if want to use IP address,
@@ -125,7 +125,7 @@ Modbus master(0, 1, TXEN_PIN, RXEN_PIN);// 0=Master 1=Serial1 initiaization usin
 #define NUMBER_OF_QUERIES 2
 modbus_t telegram[NUMBER_OF_QUERIES];
 unsigned long u32wait, wait = 5, wait_count = 0;
-double PF, PF1, PF2, PF3, celsius, precelsius = 25;
+double PF, PF1, PF2, PF3, celsius19, celsius20, precelsius19 = 20, precelsius20 = 20;
 char totals[512], phase1[256], phase2[256], phase3[256], temperature[256];
 char pubkey[] = "pub-c-214dcf40-ae99-4b74-bdf9-ba46ab52c0f8";
 char subkey[] = "sub-c-65354bf4-657c-11e7-bfac-0619f8945a4f";
@@ -134,8 +134,7 @@ char msg[64];
 
 void callbackMQTT(char* topic, byte* payload, unsigned int length)
 {
-    //Function called when something is received
-    //in the subscribed topic. 
+    //Function called when something is received in the subscribed topic. 
     //There are no current subscriptions.
 }
 
@@ -178,7 +177,7 @@ void loop()
         {
             master.query(telegram[u8query]);    // send query (only once)
             u8state++; 
-    	    u8query = 0;
+            u8query = 0;
             break;
         }
         case 2:
@@ -383,10 +382,14 @@ void loop()
                             telegram[0].u16RegAdd = ACTIVE_POWER-1;
                             telegram[0].au16reg = actpwr_au16data;
                             dallas.requestTemperatures();
-                            celsius = dallas.getTempCByIndex(0);
-                            if(celsius == -127)
-                                celsius = precelsius;
-                            precelsius = celsius;
+                            celsius19 = dallas.getTempCByIndex(1);
+                            celsius20 = dallas.getTempCByIndex(0);
+                            if(celsius19 == -127)
+                                celsius19 = precelsius19;
+                            precelsius19 = celsius19;
+                            if(celsius20 == -127)
+                                celsius20 = precelsius20;
+                            precelsius20 = celsius20;
                             snprintf(totals, sizeof(totals), "{\"event\":\"%s\",\"id\":\"%s\",\"actpwr\":\"%f\",\"reapwr\":\"%f\",\"apppwr\":\"%f\",\"pwrfc\":\"%f\",\"acten\":\"%u\",\"thdvln\":\"%f\",\"freq\":\"%f\",\"actenrtday\":\"%u\",\"actpwrpk\":\"%f\"}", "Totals", Particle.deviceID().c_str(), msg2dbl(actpwr_au16data), msg2dbl(reapwr_au16data), msg2dbl(apppwr_au16data), PF, acten_au16data[0]*281474976710656+acten_au16data[1]*4294967296+acten_au16data[2]*65536+acten_au16data[3], msg2dbl(thdvlnavg_au16data), msg2dbl(freq_au16data), actenrtday_au16data[0]*281474976710656+actenrtday_au16data[1]*4294967296+actenrtday_au16data[2]*65536+actenrtday_au16data[3], msg2dbl(actpwrpk_au16data));
                             client.publish("fromMeters", totals);
                             snprintf(phase1, sizeof(phase1), "{\"event\":\"%s\",\"id\":\"%s\",\"actpwr\":\"%f\",\"reapwr\":\"%f\",\"apppwr\":\"%f\",\"pwrfc\":\"%f\",\"acten\":\"%u\",\"thdvln\":\"%f\",\"freq\":\"%d\",\"actenrtday\":\"%d\",\"actpwrpk\":\"%d\"}", "One", Particle.deviceID().c_str(), msg2dbl(actpwrp1_au16data), msg2dbl(reapwrp1_au16data), msg2dbl(apppwrp1_au16data), PF1, actenp1_au16data[0]*281474976710656+actenp1_au16data[1]*4294967296+actenp1_au16data[2]*65536+actenp1_au16data[3], msg2dbl(thdvl1n_au16data), 0, 0, 0);
@@ -395,18 +398,20 @@ void loop()
                             client.publish("fromMeters", phase2);
                             snprintf(phase3, sizeof(phase3), "{\"event\":\"%s\",\"id\":\"%s\",\"actpwr\":\"%f\",\"reapwr\":\"%f\",\"apppwr\":\"%f\",\"pwrfc\":\"%f\",\"acten\":\"%u\",\"thdvln\":\"%f\",\"freq\":\"%d\",\"actenrtday\":\"%d\",\"actpwrpk\":\"%d\"}", "Three", Particle.deviceID().c_str(), msg2dbl(actpwrp3_au16data), msg2dbl(reapwrp3_au16data), msg2dbl(apppwrp3_au16data), PF3, actenp3_au16data[0]*281474976710656+actenp3_au16data[1]*4294967296+actenp3_au16data[2]*65536+actenp3_au16data[3], msg2dbl(thdvl3n_au16data), 0, 0, 0);
                             client.publish("fromMeters", phase3);
-                            snprintf(temperature, sizeof(temperature), "{\"id\":\"%s\",\"metertemp\":\"%f\",\"sensortemp\":\"%f\"}", Particle.deviceID().c_str(), msg2dbl(temp_au16data), celsius);
+                            snprintf(temperature, sizeof(temperature), "{\"id\":\"%s\",\"metertemp\":\"%f\"}", Particle.deviceID().c_str(), msg2dbl(temp_au16data));
                             client.publish("fromTemperature", temperature);
                             //Only one meter publishes on PubNub.
                             //PubNub publishes a real-time datastream on Power BI.
                             if(Particle.deviceID()=="310036001047353138383138")
                             {
-                                TCPClient *client;
-                                Time.zone(-3);
-                                snprintf(msg, sizeof(msg), "{\"Temperature\":\"%f\",\"Time\":\"%s\"}", msg2dbl(temp_au16data), Time.format(TIME_FORMAT_ISO8601_FULL).c_str());
-                                client = PubNub.publish(channel, msg);
-                                client->stop();
-                                delay(200);
+                                snprintf(temperature, sizeof(temperature), "{\"id\":\"%s\",\"sensortemp19\":\"%f\",\"sensortemp20\":\"%f\"}", Particle.deviceID().c_str(), celsius19, celsius20);
+                                client.publish("fromSensor", temperature);
+                                //TCPClient *client;
+                                //Time.zone(-3);
+                                //snprintf(msg, sizeof(msg), "{\"TemperatureCC19\":\"%f\",\"TemperatureCC20\":\"%f\",\"Time\":\"%s\"}", celsius19, celsius20, Time.format(TIME_FORMAT_ISO8601_FULL).c_str());
+                                //client = PubNub.publish(channel, msg);
+                                //client->stop();
+                                //delay(200);
                             }
                             delay(wait*1000);
                             wait_count += wait;

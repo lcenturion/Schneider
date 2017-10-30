@@ -37,6 +37,9 @@
               h4{
                 font-size:14pt;
               }
+              #item h4{
+                font-size:10px;
+              }
               table {border-spacing: 2px;}
               td    {padding: 6px;}
         </style>        
@@ -113,6 +116,10 @@
 
             <table>
                 <tr>
+                    <td>Clave</td>
+                    <td><input id="idPassword" type="password"></td>
+                </tr>
+                <tr>
                     <td>Notificar</td>
                     <td>
                         <select onchange="document.getElementById('idNotificar').value = this.value;">
@@ -121,14 +128,14 @@
                           <option value="+59899686006">Oscar Nicasio</option>
                           <option value="+56944071634">Mauricio Suga</option>
                           <option value="+5491168330304">Marcelo Rocha (Móvil)</option>
-                          <option value="+5491144350188">Nicolás Laurutis</option>
+                          <option value="+5491150170377">Nicolás Laurutis</option>
                           <option value="+5491150170343">Nicolás Macloughlin</option>
                           <option value="+5491168138749">Carlos Spera</option>
                           <option value="+56944071635">Daniel Marquesim</option>
                           <option value="+541152820308">Marcelo Rocha (Escritorio)</option>
                           <option value="+541152820447">Lucas Centurión (Escritorio)</option>
                           <option value="+5491139252001">Lucas Centurión (Móvil)</option>
-                          <option value="+541132829377">Carlos Pingarilho</option>
+                          <optxion value="+541132829377">Carlos Pingarilho</option>
                         </select>                
                     </td>
                     <td><input type="text" id="idNotificar"/></td>
@@ -142,7 +149,7 @@
                           <option value="+59899686006">Oscar Nicasio</option>
                           <option value="+56944071634">Mauricio Suga</option>
                           <option value="+5491168330304">Marcelo Rocha (Móvil)</option>
-                          <option value="+5491144350188">Nicolás Laurutis</option>
+                          <option value="+5491150170377">Nicolás Laurutis</option>
                           <option value="+5491150170343">Nicolás Macloughlin</option>
                           <option value="+5491168138749">Carlos Spera</option>
                           <option value="+56944071635">Daniel Marquesim</option>
@@ -181,8 +188,8 @@
 	<script type="text/javascript">
         //http://plugins.krajee.com/star-rating STAR RATING
 
-        // var wsUri = "ws://200.40.153.99:8084";
-        var wsUri = "ws://localhost:8084";
+        var wsUri = "ws://200.40.153.99:8084";
+        // var wsUri = "ws://localhost:8084";
         var websocket;
         function initWebSocket()
         {
@@ -192,6 +199,7 @@
             websocket.onmessage = function(evt) { onMessage(evt) };
             websocket.onerror = function(evt) { onError(evt) };
         }
+
         function onOpen(evt)
         {
             console.log("CONNECTED");
@@ -298,7 +306,13 @@
                 break;
             case 1:
                 setTemp("idPiso19", "20", "#FFFFC0");
-                addMessage({tipo:'warning',text:'Se manda una alarma por Mail. Si pasados los 10 minutos continúa en ese estado se envía un SMS'});
+                addMessage({tipo:'warning',text:'Se manda una alarma por Mail. Si pasados los 10 minutos continúa en ese estado se envía un SMS'});;
+                websocket.send(JSON.stringify({
+                    cmd:"sms", 
+                    password:document.getElementById('idPassword').value.trim(),
+                    numero:document.getElementById('idNotificar').value.trim(),
+                    motivo:" de temperatura."
+                }));
                 setTimeout(machine,7000);
                 state++;
                 break;
@@ -308,6 +322,8 @@
                 //setTimeout(machine,5000);
                 websocket.send(JSON.stringify({
                     cmd: "call",
+                    ruta: "voice",
+                    password:document.getElementById('idPassword').value.trim(),
                     notificar:document.getElementById('idNotificar').value.trim(),
                     responsable:document.getElementById('idResponsable').value.trim()
                     }));
